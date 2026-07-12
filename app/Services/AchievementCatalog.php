@@ -15,7 +15,7 @@ final class AchievementCatalog
         $specs=[
           ['Dumbbell Bench Press',[['first','First Dumbbell Bench Press','exercise_count',1],['20','Bench Foundation','exercise_weight',20],['30','Bench Progression','exercise_weight',30],['control','Bench Control','sets_top_range',3]]],
           ['Incline Dumbbell Press',[['first','First Incline Press','exercise_count',1],['20','Incline Foundation','exercise_weight',20],['control','Incline Control','sets_top_range',3]]],
-          ['Cable Fly',[['first','First Cable Fly','exercise_count',1],['control','Controlled Fly','sets_top_range',3]]],
+          ['Dumbbell Fly',[['first','First Dumbbell Fly','exercise_count',1],['control','Controlled Fly','sets_top_range',3]]],
           ['Rope Triceps Pushdown',[['first','First Rope Pushdown','exercise_count',1],['control','Triceps Control','sets_top_range',3]]],
           ['Lat Pulldown',[['first','First Lat Pulldown','exercise_count',1],['40','Pulldown Progression','exercise_weight',40],['control','Pulldown Control','sets_top_range',3]]],
           ['Seated Cable Row',[['first','First Seated Cable Row','exercise_count',1],['40','Row Progression','exercise_weight',40],['control','Row Control','sets_top_range',3]]],

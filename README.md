@@ -205,6 +205,7 @@ sudo mariadb muscu < database/migrations/005_workout_mode.sql
 sudo mariadb muscu < database/migrations/006_exercise_workout_controls.sql
 sudo mariadb muscu < database/migrations/007_appearance_settings.sql
 sudo mariadb muscu < database/migrations/008_dynamic_sets_body_weight.sql
+sudo mariadb muscu < database/migrations/009_replace_cable_fly.sql
 sudo mariadb muscu < database/seeds/motivational_messages.sql
 ```
 

@@ -9,7 +9,7 @@ INSERT INTO workout_templates (name,session_type,scheduled_days) VALUES
 
 SET @a=(SELECT id FROM workout_templates WHERE name='Workout A — Chest / Triceps');
 INSERT INTO workout_template_exercises (workout_template_id,exercise_id,position,set_count,repetitions_min,repetitions_max,rest_seconds_min,rest_seconds) VALUES
-(@a,(SELECT id FROM exercises WHERE name='Dumbbell Bench Press'),1,3,8,12,90,120),(@a,(SELECT id FROM exercises WHERE name='Incline Dumbbell Press'),2,3,8,12,90,120),(@a,(SELECT id FROM exercises WHERE name='Cable Fly'),3,3,10,15,60,90),(@a,(SELECT id FROM exercises WHERE name='Rope Triceps Pushdown'),4,3,8,12,60,90);
+(@a,(SELECT id FROM exercises WHERE name='Dumbbell Bench Press'),1,3,8,12,90,120),(@a,(SELECT id FROM exercises WHERE name='Incline Dumbbell Press'),2,3,8,12,90,120),(@a,(SELECT id FROM exercises WHERE name='Dumbbell Fly'),3,3,10,15,60,90),(@a,(SELECT id FROM exercises WHERE name='Rope Triceps Pushdown'),4,3,8,12,60,90);
 
 SET @b=(SELECT id FROM workout_templates WHERE name='Workout B — Back / Biceps / Forearms');
 INSERT INTO workout_template_exercises (workout_template_id,exercise_id,position,set_count,repetitions_min,repetitions_max,rest_seconds_min,rest_seconds,notes) VALUES
@@ -22,4 +22,3 @@ INSERT INTO workout_template_exercises (workout_template_id,exercise_id,position
 SET @j=(SELECT id FROM workout_templates WHERE name='Leg Workout');
 INSERT INTO workout_template_exercises (workout_template_id,exercise_id,position,set_count,repetitions_min,repetitions_max,rest_seconds_min,rest_seconds,notes) VALUES
 (@j,(SELECT id FROM exercises WHERE name='Leg Press'),1,3,8,12,90,120,NULL),(@j,(SELECT id FROM exercises WHERE name='Prone Leg Curl'),2,3,8,12,60,90,NULL),(@j,(SELECT id FROM exercises WHERE name='Seated Calf Raise'),3,3,12,20,60,90,NULL),(@j,(SELECT id FROM exercises WHERE name='Back Extensions'),4,3,12,15,60,90,'If the gym has one');
-
