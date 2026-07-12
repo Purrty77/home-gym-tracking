@@ -1,0 +1,1 @@
+<?php $title='Session expired'; ?><div class="py-20 text-center"><h1 class="text-2xl font-bold">This form has expired</h1><p class="mt-2 text-zinc-400">Reload the page and try again.</p><a class="btn-primary mt-6" href="/">Back to dashboard</a></div>

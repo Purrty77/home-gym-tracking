@@ -1,0 +1,1 @@
+<?php $title='Not found'; ?><div class="py-20 text-center"><p class="text-6xl font-black text-emerald-700">404</p><h1 class="mt-4 text-2xl font-bold">Page not found</h1><a class="btn-primary mt-6" href="/">Back to dashboard</a></div>

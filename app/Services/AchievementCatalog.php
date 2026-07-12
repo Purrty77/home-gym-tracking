@@ -1,0 +1,44 @@
+<?php
+namespace App\Services;
+use App\Core\Database;
+
+final class AchievementCatalog
+{
+    public function definitions(): array
+    {
+        $items=[];$add=function(string $code,string $name,string $description,string $category,string $evaluation,?float $requirement=null,?string $exercise=null,?string $program=null,string $icon='🏆',bool $hidden=false)use(&$items){$items[]=compact('code','name','description','category','evaluation','requirement','exercise','program','icon','hidden');};
+        foreach([[1,'First Workout'],[5,'Getting Started'],[10,'Building Momentum'],[25,'Training Habit'],[50,'Committed'],[100,'Century Club'],[250,'Long-Term Work']] as [$count,$name])$add('workouts_'.$count,$name,"Complete {$count} workout".($count===1?'':'s').'.','General','workout_count',$count);
+        $add('first_exercise_complete','First Exercise Completed','Complete every planned set for one exercise.','General','exercise_complete',1);$add('first_full_workout','First Full Workout','Complete every exercise in a planned workout.','General','full_workout',1);$add('first_pr','First Personal Record','Set one personal record.','General','pr_count',1);$add('pr_10','Record Collector','Set 10 personal records.','General','pr_count',10);$add('pr_50','Record Book','Set 50 personal records.','General','pr_count',50);$add('target_range','Target Range','Complete every working set within its target range.','General','target_range',1);$add('perfect_plan','Perfect Plan','Complete every planned set in one workout.','General','perfect_plan',1);
+        foreach([[2,'Two Consistent Weeks'],[4,'Four Consistent Weeks'],[8,'Eight Consistent Weeks'],[12,'Twelve Consistent Weeks'],[24,'Six Months Strong']] as [$weeks,$name])$add('streak_'.$weeks,$name,"Complete {$weeks} planned weeks.",'Consistency','planned_week_streak',$weeks,null,null,'🔥');
+        $add('no_abandoned_25','No Abandoned Workouts','Complete 25 workouts without abandoning one.','Consistency','no_abandoned',25,null,null,'🔥');$add('complete_week','Complete Training Week','Finish every scheduled workout in one week.','Consistency','planned_week_complete',1,null,null,'📅');$add('complete_month','Complete Training Month','Finish every scheduled workout in one month.','Consistency','planned_month_complete',1,null,null,'📅');$add('sunday_legs_4','Weekend Discipline','Complete four consecutive Sunday leg workouts.','Consistency','sunday_legs',4,null,null,'🦵');$add('monday_4','Monday Standard','Complete four consecutive Monday workouts.','Consistency','monday_workouts',4);$add('back_schedule','Back on Schedule','Complete the next scheduled workout after missing one.','Consistency','return_schedule',1);
+        foreach(['Chest / Triceps','Back / Biceps / Forearms','Shoulders / Neck','Legs'] as $program){$slug=strtolower(str_replace([' / ',' '],['_','_'],$program));foreach([[1,'First'],[10,'10'],[25,'25']] as [$count,$prefix])$add("program_{$slug}_{$count}","{$prefix} {$program} Workout".($count===1?'':'s'),"Complete {$count} {$program} workout".($count===1?'':'s').'.','Program','program_count',$count,null,$program,$program==='Legs'?'🦵':'💪');$add("program_{$slug}_complete","{$program} Complete",'Complete all planned exercises.','Program','program_complete',1,null,$program);$add("program_{$slug}_progress","{$program} Progress",'Improve every eligible exercise in one workout.','Program','program_progress',1,null,$program,'📈');}
+        $specs=[
+          ['Dumbbell Bench Press',[['first','First Dumbbell Bench Press','exercise_count',1],['20','Bench Foundation','exercise_weight',20],['30','Bench Progression','exercise_weight',30],['control','Bench Control','sets_top_range',3]]],
+          ['Incline Dumbbell Press',[['first','First Incline Press','exercise_count',1],['20','Incline Foundation','exercise_weight',20],['control','Incline Control','sets_top_range',3]]],
+          ['Cable Fly',[['first','First Cable Fly','exercise_count',1],['control','Controlled Fly','sets_top_range',3]]],
+          ['Rope Triceps Pushdown',[['first','First Rope Pushdown','exercise_count',1],['control','Triceps Control','sets_top_range',3]]],
+          ['Lat Pulldown',[['first','First Lat Pulldown','exercise_count',1],['40','Pulldown Progression','exercise_weight',40],['control','Pulldown Control','sets_top_range',3]]],
+          ['Seated Cable Row',[['first','First Seated Cable Row','exercise_count',1],['40','Row Progression','exercise_weight',40],['control','Row Control','sets_top_range',3]]],
+          ['Dumbbell Curl',[['first','First Dumbbell Curl','exercise_count',1],['12','Curl Control','weight_reps',12]]],
+          ['Hammer Curl',[['first','First Hammer Curl','exercise_count',1],['12','Hammer Control','weight_reps',12]]],
+          ['Forearms',[['first','First Forearm Session','exercise_count',1],['10','Forearm Consistency','exercise_count',10]]],
+          ['Military Press',[['first','First Military Press','exercise_count',1],['20','Press Progression','exercise_weight',20],['control','Press Control','sets_top_range',3]]],
+          ['Lateral Raises',[['first','First Lateral Raise Session','exercise_count',1],['control','Lateral Control','sets_top_range',3]]],
+          ['Reverse Pec Deck',[['first','First Reverse Pec Deck','exercise_count',1],['control','Rear Delt Control','sets_top_range',3]]],
+          ['Neck Exercises',[['first','First Neck Session','exercise_count',1]]],
+          ['Leg Press',[['first','First Leg Press Set','exercise_count',1],['50','50 kg Leg Press','exercise_weight',50],['75','75 kg Leg Press','exercise_weight',75],['100','100 kg Leg Press','exercise_weight',100],['control','Leg Press Control','sets_top_range',3],['progress3','Consistent Leg Progress','consecutive_improvement',3]]],
+          ['Prone Leg Curl',[['first','First Prone Leg Curl','exercise_count',1],['30x10','30 kg × 10','weight_reps',30],['3x8','30 kg for 3 × 8','sets_min_reps',3],['progress3','Consistent Curl Progress','consecutive_improvement',3]]],
+          ['Seated Calf Raise',[['first','First Seated Calf Raise','exercise_count',1],['20','Calf Endurance','exercise_reps',20],['3x15','Calf Control','sets_min_reps',3],['loaded','Loaded Calf Endurance','load_with_min_reps',12]]],
+          ['Back Extensions',[['first','First Back Extension Session','exercise_count',1]]]
+        ];
+        foreach($specs as [$exercise,$rules])foreach($rules as [$suffix,$name,$evaluation,$requirement])$add(strtolower(str_replace(' ','_',$exercise)).'_'.$suffix,$name,'Exercise-specific training milestone.','Exercise',$evaluation,$requirement,$exercise,null,$exercise==='Leg Press'||$exercise==='Prone Leg Curl'||$exercise==='Seated Calf Raise'?'🦵':'💪');
+        foreach([['body_weight_1','First Body-Weight Entry','body_weight_count',1],['body_weight_10','10 Body-Weight Entries','body_weight_count',10],['body_weight_25','25 Body-Weight Entries','body_weight_count',25],['measure_1','First Monthly Measurements','measurement_count',1],['measure_3','Three Tracked Months','measurement_streak',3],['measure_6','Six Tracked Months','measurement_streak',6],['measure_12','One Year Tracked','measurement_streak',12]] as [$code,$name,$type,$req])$add($code,$name,'Build a consistent tracking history.','Tracking',$type,$req,null,null,'📏');
+        $add('hidden_return','The Return','Momentum can be rebuilt.','Hidden','return_after_break',1,null,null,'✨',true);$add('hidden_double_pr','Double Record','One session, more than one breakthrough.','Hidden','pr_in_workout',2,null,null,'✨',true);$add('hidden_exact','Exact Standard','Precision matters.','Hidden','exact_top_range',1,null,null,'✨',true);$add('hidden_finish','No Set Left Behind','Finish what was left unfinished.','Hidden','finish_after_abandon',1,null,null,'✨',true);
+        return $items;
+    }
+
+    public function sync(): int
+    {
+        $db=Database::connection();$exerciseIds=$db->query('SELECT name,id FROM exercises')->fetchAll(\PDO::FETCH_KEY_PAIR);$templateIds=$db->query('SELECT session_type,id FROM workout_templates')->fetchAll(\PDO::FETCH_KEY_PAIR);$stmt=$db->prepare("INSERT INTO achievement_definitions(code,name,description,category,icon,is_hidden,evaluation_type,requirement_value,workout_template_id,exercise_id,sort_order) VALUES(?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE name=VALUES(name),description=VALUES(description),category=VALUES(category),icon=VALUES(icon),is_hidden=VALUES(is_hidden),evaluation_type=VALUES(evaluation_type),requirement_value=VALUES(requirement_value),workout_template_id=VALUES(workout_template_id),exercise_id=VALUES(exercise_id),sort_order=VALUES(sort_order)");$index=1;foreach($this->definitions() as $item){$stmt->execute([$item['code'],$item['name'],$item['description'],$item['category'],$item['icon'],$item['hidden']?1:0,$item['evaluation'],$item['requirement'],$item['program']?$templateIds[$item['program']]??null:null,$item['exercise']?$exerciseIds[$item['exercise']]??null:null,$index++]);}return $index-1;
+    }
+}

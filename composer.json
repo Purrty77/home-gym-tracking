@@ -1,0 +1,17 @@
+{
+  "name": "personal/home-gym-tracking",
+  "description": "Suivi de musculation personnel et local",
+  "type": "project",
+  "license": "proprietary",
+  "require": {
+    "php": "^8.2",
+    "ext-pdo": "*",
+    "vlucas/phpdotenv": "^5.6"
+  },
+  "autoload": {
+    "psr-4": {"App\\": "app/"},
+    "files": ["app/Helpers/functions.php"]
+  },
+  "config": {"sort-packages": true},
+  "scripts": {"test": "php tests/run.php", "test:workout": "php tests/workout_mode.php"}
+}

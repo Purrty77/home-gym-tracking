@@ -1,0 +1,1 @@
+<?php $title='Error'; ?><div class="py-20 text-center"><p class="text-6xl font-black text-emerald-700">500</p><h1 class="mt-4 text-2xl font-bold">Something went wrong</h1><p class="mt-2 text-zinc-400">The details were written to the application log.</p><a class="btn-primary mt-6" href="/">Back to dashboard</a></div>
