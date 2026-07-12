@@ -5,6 +5,18 @@
 .top-nav { scrollbar-width: none; }
 .top-nav::-webkit-scrollbar { display: none; }
 
+.workout-heatmap {
+  display:grid;
+  grid-auto-flow:column;
+  grid-template-rows:repeat(7,minmax(0,1fr));
+  grid-auto-columns:minmax(0,1fr);
+  gap:clamp(1px,.35vw,4px);
+  width:100%;
+  max-width:850px;
+  margin-inline:auto;
+}
+.workout-heatmap-cell { width:100%;aspect-ratio:1;border-radius:2px; }
+
 html[data-theme="light"] body { background:#f4f4f5!important;color:#18181b!important; }
 html[data-theme="light"] body > header { background:rgba(255,255,255,.94)!important;border-color:#d4d4d8!important; }
 html[data-theme="light"] [class*="bg-zinc-950"],html[data-theme="light"] [class*="bg-zinc-900"] { background-color:#fff!important; }
