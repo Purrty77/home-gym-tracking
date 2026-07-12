@@ -14,14 +14,14 @@ if (!is_dir($directory)) mkdir($directory, 0770, true);
 $plain = $directory . '/muscu-' . date('Ymd-His') . '.sql';
 $archive = $plain . '.gz';
 
-putenv('MARIADB_PWD=' . $_ENV['DB_PASSWORD']);
+putenv('MYSQL_PWD=' . $_ENV['DB_PASSWORD']);
 $command = sprintf(
     'mariadb-dump --single-transaction --host=%s --port=%s --user=%s %s > %s',
     escapeshellarg($_ENV['DB_HOST']), escapeshellarg($_ENV['DB_PORT']),
     escapeshellarg($_ENV['DB_USERNAME']), escapeshellarg($_ENV['DB_DATABASE']), escapeshellarg($plain)
 );
 exec($command, $output, $status);
-putenv('MARIADB_PWD');
+putenv('MYSQL_PWD');
 if ($status !== 0) { @unlink($plain); fwrite(STDERR, "Échec de la sauvegarde.\n"); exit(1); }
 
 file_put_contents($archive, gzencode((string) file_get_contents($plain), 9));
