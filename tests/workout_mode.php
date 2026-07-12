@@ -1,10 +1,11 @@
 <?php
-declare(strict_types=1);
-use App\Core\Database;
-use App\Models\WorkoutTemplate;
-use App\Services\ActiveWorkoutService;
-use Dotenv\Dotenv;
-require dirname(__DIR__).'/vendor/autoload.php';Dotenv::createImmutable(dirname(__DIR__))->load();
+require dirname(__DIR__).'/vendor/autoload.php';Dotenv\Dotenv::createImmutable(dirname(__DIR__))->load();
+use App\Core\Database;use App\Models\WorkoutTemplate;use App\Services\ActiveWorkoutService;
 $service=new ActiveWorkoutService();if($service->active())throw new RuntimeException('An active workout already exists; workout-mode test was not run.');$template=WorkoutTemplate::forDay(7)??throw new RuntimeException('Leg workout plan is missing.');$state=$service->start((int)$template['id']);$sessionId=(int)$state['session']['id'];
-try{if($state['current']['name']!=='Leg Press'||(int)$state['current']['target_set_count']!==3)throw new RuntimeException('Workout plan was not initialized correctly.');$sets=0;$exerciseCompletions=0;while(($state=$service->active())&&$state['current']){$result=$service->completeSet(['weight_kg'=>$state['defaultWeight']?:50,'repetitions'=>12,'set_type'=>'working']);$sets++;if($result['status']==='exercise_completed')$exerciseCompletions++;if($sets>20)throw new RuntimeException('Workout did not advance.');}$summary=$service->summary();if($sets!==12||count($summary['summary'])!==4||$exerciseCompletions!==3)throw new RuntimeException('Workout completion state is incorrect.');$finished=$service->finish('Automated workout-mode test');if($finished!==$sessionId)throw new RuntimeException('Workout was not finished.');echo "✓ Workout Mode: start, set persistence, exercise advancement, recovery and completion\n";}finally{Database::connection()->prepare('DELETE FROM workout_sessions WHERE id=?')->execute([$sessionId]);}
-
+try{
+    if($state['current']['name']!=='Leg Press'||(int)$state['current']['target_set_count']!==4||$state['currentSet']['set_type']!=='warmup')throw new RuntimeException('Workout plan was not initialized with warm-up and working sets.');
+    $added=$service->addSet();$state=$service->active();if((int)$state['current']['target_set_count']!==5||(int)$state['extraSets'][0]['id']!==$added['set_id'])throw new RuntimeException('An extra set was not persisted.');$service->removeSet($added['set_id']);$state=$service->active();if((int)$state['current']['target_set_count']!==4||$state['extraSets'])throw new RuntimeException('An extra set was not removed.');
+    $service->bodyWeight(80.5);$state=$service->active();if((float)$state['session']['body_weight_kg']!==80.5)throw new RuntimeException('Workout body weight was not saved.');
+    $sets=0;$exerciseCompletions=0;while(($state=$service->active())&&$state['current']){$result=$service->completeSet(['weight_kg'=>$state['defaultWeight']?:50,'repetitions'=>12,'set_type'=>$state['currentSet']['set_type']??'working']);$sets++;if($result['status']==='exercise_completed')$exerciseCompletions++;if($sets>24)throw new RuntimeException('Workout did not advance.');}
+    $summary=$service->summary();if($sets!==16||count($summary['summary'])!==4||$exerciseCompletions!==3)throw new RuntimeException('Workout completion state is incorrect.');$finished=$service->finish('Automated workout-mode test');if($finished!==$sessionId)throw new RuntimeException('Workout was not finished.');echo "✓ Workout Mode: planned sets, dynamic sets, body weight, advancement and completion\n";
+}finally{Database::connection()->prepare('DELETE FROM workout_sessions WHERE id=?')->execute([$sessionId]);Database::connection()->prepare("DELETE FROM body_weight_entries WHERE recorded_on=CURRENT_DATE AND source='workout'")->execute();}

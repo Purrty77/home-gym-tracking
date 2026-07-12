@@ -85,7 +85,9 @@ CREATE TABLE exercise_sets (
     completed_at DATETIME NULL,
     duration_seconds SMALLINT UNSIGNED NULL,
     is_personal_record BOOLEAN NOT NULL DEFAULT FALSE,
+    is_extra BOOLEAN NOT NULL DEFAULT FALSE,
     CONSTRAINT fk_set_workout_exercise FOREIGN KEY (workout_exercise_id) REFERENCES workout_exercises(id) ON DELETE CASCADE,
+    UNIQUE KEY uq_sets_workout_exercise_position (workout_exercise_id, position),
     INDEX idx_sets_workout_exercise (workout_exercise_id, position)
 ) ENGINE=InnoDB;
 
@@ -104,6 +106,17 @@ CREATE TABLE measurements (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uq_measurement_month (measurement_month),
     INDEX idx_measurements_date (measured_on)
+) ENGINE=InnoDB;
+
+CREATE TABLE body_weight_entries (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    recorded_on DATE NOT NULL,
+    weight_kg DECIMAL(5,2) NOT NULL,
+    source ENUM('dashboard','workout','measurement','migration') NOT NULL DEFAULT 'dashboard',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_body_weight_date (recorded_on),
+    INDEX idx_body_weight_date (recorded_on)
 ) ENGINE=InnoDB;
 
 CREATE TABLE settings (

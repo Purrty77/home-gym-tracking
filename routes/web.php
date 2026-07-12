@@ -7,8 +7,10 @@ use App\Controllers\MeasurementController;
 use App\Controllers\SessionController;
 use App\Controllers\SettingController;
 use App\Controllers\WorkoutModeController;
+use App\Controllers\BodyWeightController;
 
 $router->get('/dashboard',[DashboardController::class,'index'],'dashboard');
+$router->post('/body-weight',[BodyWeightController::class,'store'],'body-weight.store');
 
 $router->get('/workouts',[SessionController::class,'index'],'workouts.index');
 $router->get('/workouts/new',[WorkoutModeController::class,'create'],'workouts.create');
@@ -36,6 +38,9 @@ $router->get('/achievements',[AchievementController::class,'index'],'achievement
 $router->post('/workouts/start',[WorkoutModeController::class,'start'],'workouts.start');
 $router->get('/workouts/active',[WorkoutModeController::class,'active'],'workouts.active');
 $router->post('/workouts/active/set',[WorkoutModeController::class,'set'],'workouts.active.set');
+$router->post('/workouts/active/add-set',[WorkoutModeController::class,'addSet'],'workouts.active.add-set');
+$router->post('/workouts/active/remove-set',[WorkoutModeController::class,'removeSet'],'workouts.active.remove-set');
+$router->post('/workouts/active/body-weight',[WorkoutModeController::class,'bodyWeight'],'workouts.active.body-weight');
 $router->post('/workouts/active/timer',[WorkoutModeController::class,'timer'],'workouts.active.timer');
 $router->get('/workouts/active/summary',[WorkoutModeController::class,'summary'],'workouts.active.summary');
 $router->post('/workouts/active/finish',[WorkoutModeController::class,'finish'],'workouts.active.finish');
