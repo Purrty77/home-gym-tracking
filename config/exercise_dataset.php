@@ -1,0 +1,41 @@
+<?php
+return [
+    'source'=>'hasaneyldrm/exercises-dataset',
+    'groups'=>[
+        'Neck'=>['1403','0716'],
+        'Shoulders'=>['0405','1457','0334','0178','0602','0378','0225','0310'],
+        'Chest'=>['0025','0289','0047','0314','0033','0662','0251','0188','0596','0308'],
+        'Back'=>['0652','1326','0197','0818','0861','0027','0293','0049','1350','0238','0095'],
+        'Biceps'=>['0294','0031','0447','0313','0318','0592','0868','0297'],
+        'Triceps'=>['0200','0201','0194','2188','0060','0030','0129'],
+        'Forearms'=>['0126','0385','0080','2133'],
+        'Legs'=>['1461','0042','1760','0739','0743','0410','1460','0054','0431','0585','1409','3013','0085','0432','0586','0599','0496','0044'],
+        'Calves'=>['0605','0594','1385','0409'],
+        'Lower Back'=>['0573'],
+        'Abs'=>['0276','0464','3544','0274','0175','0472','0857'],
+    ],
+    'existing_matches'=>[
+        '0405'=>'Military Press','0334'=>'Lateral Raises','0602'=>'Reverse Pec Deck',
+        '0289'=>'Dumbbell Bench Press','0314'=>'Incline Dumbbell Press','0308'=>'Dumbbell Fly','0188'=>'Cable Fly',
+        '0197'=>'Lat Pulldown','0861'=>'Seated Cable Row','0294'=>'Dumbbell Curl','0313'=>'Hammer Curl',
+        '0200'=>'Rope Triceps Pushdown','0739'=>'Leg Press','0586'=>'Prone Leg Curl','0594'=>'Seated Calf Raise','0573'=>'Back Extensions',
+    ],
+    'preferred_names'=>[
+        '1403'=>'Neck Side Stretch','0716'=>'Side Push Neck Stretch','0405'=>'Dumbbell Shoulder Press','1457'=>'Barbell Military Press',
+        '0602'=>'Reverse Pec Deck','0378'=>'Rear Delt Fly','0225'=>'Cable High Reverse Fly','0188'=>'Cable Fly','0596'=>'Pec Deck',
+        '0197'=>'Lat Pulldown','0818'=>'Close-Grip Lat Pulldown','0861'=>'Seated Cable Row','0027'=>'Barbell Row','0293'=>'Dumbbell Row',
+        '0049'=>'Chest-Supported Row','1350'=>'Machine Row','0238'=>'Straight-Arm Pulldown','0294'=>'Dumbbell Curl','0447'=>'EZ-Bar Curl',
+        '0313'=>'Hammer Curl','0318'=>'Incline Dumbbell Curl','0592'=>'Preacher Curl','0297'=>'Concentration Curl',
+        '0200'=>'Rope Triceps Pushdown','0201'=>'Straight-Bar Pushdown','0194'=>'Overhead Rope Extension','2188'=>'Dumbbell Overhead Extension',
+        '0060'=>'Skull Crusher','0030'=>'Close-Grip Bench Press','0129'=>'Bench Dip','0126'=>'Wrist Curl','0385'=>'Reverse Wrist Curl',
+        '0080'=>'Reverse Curl','2133'=>'Farmer Carry','1461'=>'Back Squat','0410'=>'Bulgarian Split Squat','0054'=>'Barbell Lunge',
+        '0739'=>'Leg Press','0585'=>'Leg Extension','1409'=>'Hip Thrust','3013'=>'Glute Bridge','0085'=>'Romanian Deadlift',
+        '0432'=>'Stiff-Leg Deadlift','0586'=>'Prone Leg Curl','0599'=>'Seated Leg Curl','0496'=>'Nordic Curl','0605'=>'Standing Calf Raise',
+        '0594'=>'Seated Calf Raise','1385'=>'Leg Press Calf Raise','0409'=>'Single-Leg Calf Raise','0573'=>'Back Extension',
+        '0276'=>'Dead Bug','0464'=>'Front Plank','3544'=>'Side Plank','0274'=>'Crunch','0175'=>'Cable Crunch','0857'=>'Ab Wheel Rollout',
+    ],
+    'equipment_map'=>[
+        'dumbbell'=>'Dumbbells','cable'=>'Cable','barbell'=>'Barbell','ez barbell'=>'Barbell','body weight'=>'Bodyweight',
+        'leverage machine'=>'Machine','sled machine'=>'Machine','wheel roller'=>'Bodyweight',
+    ],
+];

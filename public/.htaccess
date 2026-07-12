@@ -1,6 +1,11 @@
 Options -Indexes
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/jpeg "access plus 30 days"
+    ExpiresByType image/gif "access plus 30 days"
+    ExpiresByType image/webp "access plus 30 days"
+</IfModule>
 RewriteEngine On
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ index.php [QSA,L]
-

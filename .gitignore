@@ -4,5 +4,12 @@
 /.tools/
 /storage/logs/*
 /storage/backups/*
+/storage/import-reports/*
+/storage/import-source/*
+/public/media/exercises/images/*
+/public/media/exercises/gifs/*
 !/storage/logs/.gitkeep
 !/storage/backups/.gitkeep
+!/storage/import-reports/.gitkeep
+!/public/media/exercises/images/.gitkeep
+!/public/media/exercises/gifs/.gitkeep

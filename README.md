@@ -206,8 +206,23 @@ sudo mariadb muscu < database/migrations/006_exercise_workout_controls.sql
 sudo mariadb muscu < database/migrations/007_appearance_settings.sql
 sudo mariadb muscu < database/migrations/008_dynamic_sets_body_weight.sql
 sudo mariadb muscu < database/migrations/009_replace_cable_fly.sql
+sudo mariadb muscu < database/migrations/010_exercise_dataset_metadata.sql
 sudo mariadb muscu < database/seeds/motivational_messages.sql
 ```
+
+### Selected exercise dataset
+
+The exercise library importer is intentionally limited to 80 reviewed exercises from `hasaneyldrm/exercises-dataset`. It never imports the complete 1,324-record catalogue and never changes workout targets, rest settings, increments, history, templates, or achievements.
+
+Fetch only the selected source records and their associated media, preview the import, then apply it:
+
+```bash
+php scripts/fetch_exercise_dataset.php
+php scripts/import_exercises.php --dry-run --selected-only --update-existing --with-media
+php scripts/import_exercises.php --selected-only --update-existing --with-media
+```
+
+Import reports are written to `storage/import-reports/`. Exercise media stays local under `public/media/exercises/` and is excluded from Git. The media attribution supplied by the source dataset is displayed on each enriched exercise page and in Workout Mode.
 
 ## Sauvegarde MariaDB
 

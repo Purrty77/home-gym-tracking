@@ -9,7 +9,7 @@ final class Exercise
     public static function library(array $filters=[]): array
     {
         $db=Database::connection();$where=['e.is_active=1'];$params=[];
-        if(($filters['search']??'')!==''){$where[]='(e.name LIKE ? OR mg.name LIKE ? OR eq.name LIKE ?)';$term='%'.$filters['search'].'%';array_push($params,$term,$term,$term);}
+        if(($filters['search']??'')!==''){$where[]='(e.name LIKE ? OR e.canonical_name LIKE ? OR e.target_muscle LIKE ? OR mg.name LIKE ? OR eq.name LIKE ?)';$term='%'.$filters['search'].'%';array_push($params,$term,$term,$term,$term,$term);}
         if(($filters['scope']??'all')==='program')$where[]='EXISTS(SELECT 1 FROM workout_template_exercises px JOIN workout_templates pt ON pt.id=px.workout_template_id AND pt.is_active=1 WHERE px.exercise_id=e.id)';
         if(($filters['scope']??'all')==='recent')$where[]="EXISTS(SELECT 1 FROM workout_exercises rw JOIN workout_sessions rs ON rs.id=rw.workout_session_id WHERE rw.exercise_id=e.id AND rs.status='completed' AND rs.performed_at>=CURRENT_DATE-INTERVAL 30 DAY)";
         if(($filters['muscle']??'')!==''){$where[]='mg.name=?';$params[]=$filters['muscle'];}

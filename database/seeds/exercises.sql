@@ -2,7 +2,7 @@ SET NAMES utf8mb4;
 USE muscu;
 
 INSERT INTO muscle_groups (name,sort_order) VALUES
-('Neck',10),('Shoulders',20),('Chest',30),('Back',40),('Biceps',50),('Triceps',51),('Forearms',60),('Lower Back',70),('Legs',80),('Calves',90);
+('Neck',10),('Shoulders',20),('Chest',30),('Back',40),('Biceps',50),('Triceps',51),('Forearms',60),('Lower Back',70),('Abs',75),('Legs',80),('Calves',90);
 
 INSERT INTO equipment (name) VALUES
 ('Dumbbells'),('Cable'),('Machine'),('Barbell'),('Bodyweight'),('Hammer Strength');
