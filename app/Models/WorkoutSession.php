@@ -47,6 +47,7 @@ final class WorkoutSession
         $stmt = $db->prepare("SELECT we.id workout_exercise_id,we.exercise_id,we.notes exercise_notes,e.name,e.recommended_rest_seconds,es.* FROM workout_exercises we JOIN exercises e ON e.id=we.exercise_id LEFT JOIN exercise_sets es ON es.workout_exercise_id=we.id WHERE we.workout_session_id=? ORDER BY we.position,es.position");
         $stmt->execute([$id]);
         $session['rows'] = $stmt->fetchAll();
+        $segments=$db->prepare('SELECT ss.* FROM exercise_set_segments ss JOIN exercise_sets es ON es.id=ss.exercise_set_id JOIN workout_exercises we ON we.id=es.workout_exercise_id WHERE we.workout_session_id=? ORDER BY ss.exercise_set_id,ss.position');$segments->execute([$id]);$bySet=[];foreach($segments->fetchAll() as $segment)$bySet[(int)$segment['exercise_set_id']][]=$segment;foreach($session['rows'] as &$row)$row['segments']=$row['id']?($bySet[(int)$row['id']]??[]):[];unset($row);
         return $session;
     }
 

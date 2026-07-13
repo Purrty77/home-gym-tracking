@@ -4,6 +4,11 @@
 
 html, body { touch-action:manipulation; }
 a, button, input, select, textarea, summary, label { touch-action:manipulation; }
+@media (hover:none) and (pointer:coarse) {
+  .workout-mode-controls button,
+  .workout-mode-controls input,
+  #workout-overlay button { touch-action:manipulation; }
+}
 
 .top-nav { scrollbar-width: none; }
 .top-nav::-webkit-scrollbar { display: none; }

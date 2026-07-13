@@ -207,8 +207,11 @@ sudo mariadb muscu < database/migrations/007_appearance_settings.sql
 sudo mariadb muscu < database/migrations/008_dynamic_sets_body_weight.sql
 sudo mariadb muscu < database/migrations/009_replace_cable_fly.sql
 sudo mariadb muscu < database/migrations/010_exercise_dataset_metadata.sql
+sudo mariadb muscu < database/migrations/011_workout_mode_companion.sql
 sudo mariadb muscu < database/seeds/motivational_messages.sql
 ```
+
+Migration `011` adds the per-exercise warm-up choice, drop-set segments, persistent exercise ordering, and optional workout-plan updates. The warm-up default can be changed under **Settings → Warm-up sets**.
 
 ### Selected exercise dataset
 

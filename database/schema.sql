@@ -64,6 +64,8 @@ CREATE TABLE workout_sessions (
     completed_at DATETIME NULL,
     rest_ends_at DATETIME NULL,
     rest_paused_seconds SMALLINT UNSIGNED NULL,
+    template_order_changed BOOLEAN NOT NULL DEFAULT FALSE,
+    template_sets_changed BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_sessions_date (performed_at)
@@ -80,6 +82,7 @@ CREATE TABLE workout_exercises (
     target_repetitions_min SMALLINT UNSIGNED NULL,
     target_repetitions_max SMALLINT UNSIGNED NULL,
     planned_rest_seconds SMALLINT UNSIGNED NULL,
+    warmup_decision ENUM('pending','added','skipped') NOT NULL DEFAULT 'skipped',
     started_at DATETIME NULL,
     completed_at DATETIME NULL,
     CONSTRAINT fk_we_session FOREIGN KEY (workout_session_id) REFERENCES workout_sessions(id) ON DELETE CASCADE,
@@ -105,6 +108,19 @@ CREATE TABLE exercise_sets (
     CONSTRAINT fk_set_workout_exercise FOREIGN KEY (workout_exercise_id) REFERENCES workout_exercises(id) ON DELETE CASCADE,
     UNIQUE KEY uq_sets_workout_exercise_position (workout_exercise_id, position),
     INDEX idx_sets_workout_exercise (workout_exercise_id, position)
+) ENGINE=InnoDB;
+
+CREATE TABLE exercise_set_segments (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    exercise_set_id BIGINT UNSIGNED NOT NULL,
+    position TINYINT UNSIGNED NOT NULL,
+    weight_kg DECIMAL(7,2) NOT NULL,
+    repetitions SMALLINT UNSIGNED NOT NULL,
+    is_personal_record BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_segment_set FOREIGN KEY (exercise_set_id) REFERENCES exercise_sets(id) ON DELETE CASCADE,
+    UNIQUE KEY uq_segment_position (exercise_set_id, position),
+    INDEX idx_segments_set (exercise_set_id, position)
 ) ENGINE=InnoDB;
 
 CREATE TABLE measurements (
@@ -174,7 +190,8 @@ INSERT INTO settings (setting_key, setting_value) VALUES
 ('motivational_message_date',''),
 ('timer_sound_enabled','1'),
 ('timer_vibration_enabled','1'),
-('body_weight_goal_direction','unset');
+('body_weight_goal_direction','unset'),
+('warmup_default_behavior','ask');
 
 CREATE TABLE motivational_messages (id TINYINT UNSIGNED PRIMARY KEY,message VARCHAR(160) NOT NULL) ENGINE=InnoDB;
 CREATE TABLE achievement_definitions (id SMALLINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,code VARCHAR(100) NOT NULL UNIQUE,name VARCHAR(150) NOT NULL,description VARCHAR(300) NOT NULL,category VARCHAR(50) NOT NULL,icon VARCHAR(20) NOT NULL DEFAULT '🏆',is_hidden BOOLEAN NOT NULL DEFAULT FALSE,evaluation_type VARCHAR(50) NOT NULL,requirement_value DECIMAL(10,2) NULL,workout_template_id SMALLINT UNSIGNED NULL,exercise_id INT UNSIGNED NULL,sort_order SMALLINT UNSIGNED NOT NULL DEFAULT 100,is_active BOOLEAN NOT NULL DEFAULT TRUE,CONSTRAINT fk_achievement_template FOREIGN KEY(workout_template_id) REFERENCES workout_templates(id) ON DELETE CASCADE,CONSTRAINT fk_achievement_exercise FOREIGN KEY(exercise_id) REFERENCES exercises(id) ON DELETE CASCADE) ENGINE=InnoDB;

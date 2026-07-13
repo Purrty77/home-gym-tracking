@@ -38,8 +38,10 @@ $router->get('/achievements',[AchievementController::class,'index'],'achievement
 $router->post('/workouts/start',[WorkoutModeController::class,'start'],'workouts.start');
 $router->get('/workouts/active',[WorkoutModeController::class,'active'],'workouts.active');
 $router->post('/workouts/active/set',[WorkoutModeController::class,'set'],'workouts.active.set');
+$router->post('/workouts/active/warmup',[WorkoutModeController::class,'warmup'],'workouts.active.warmup');
 $router->post('/workouts/active/add-set',[WorkoutModeController::class,'addSet'],'workouts.active.add-set');
 $router->post('/workouts/active/remove-set',[WorkoutModeController::class,'removeSet'],'workouts.active.remove-set');
+$router->post('/workouts/active/reorder',[WorkoutModeController::class,'reorder'],'workouts.active.reorder');
 $router->post('/workouts/active/body-weight',[WorkoutModeController::class,'bodyWeight'],'workouts.active.body-weight');
 $router->post('/workouts/active/replace-exercise',[WorkoutModeController::class,'replaceExercise'],'workouts.active.replace-exercise');
 $router->post('/workouts/active/timer',[WorkoutModeController::class,'timer'],'workouts.active.timer');
