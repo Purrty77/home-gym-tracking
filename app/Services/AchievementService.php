@@ -16,7 +16,12 @@ final class AchievementService
 
     public function allWithProgress(): array
     {
-        (new AchievementCatalog())->sync();$rows=Database::connection()->query('SELECT ad.*,au.unlocked_at FROM achievement_definitions ad LEFT JOIN achievement_unlocks au ON au.achievement_id=ad.id WHERE ad.is_active=1 ORDER BY ad.sort_order')->fetchAll();foreach($rows as &$row){$row['current_value']=$this->value($row,null);$row['progress_percent']=min(100,(int)round($row['current_value']/max(1,(float)($row['requirement_value']??1))*100));}return $rows;
+        $this->reconcile();$rows=Database::connection()->query('SELECT ad.*,au.unlocked_at FROM achievement_definitions ad LEFT JOIN achievement_unlocks au ON au.achievement_id=ad.id WHERE ad.is_active=1 ORDER BY ad.sort_order')->fetchAll();foreach($rows as &$row){$row['current_value']=$this->value($row,null);$row['progress_percent']=min(100,(int)round($row['current_value']/max(1,(float)($row['requirement_value']??1))*100));}return $rows;
+    }
+
+    public function reconcile(): array
+    {
+        (new AchievementCatalog())->sync();$db=Database::connection();$sessionId=(int)$db->query("SELECT id FROM workout_sessions WHERE status='completed' ORDER BY performed_at DESC,id DESC LIMIT 1")->fetchColumn();$unlocked=$sessionId?$this->evaluateWorkout($sessionId):[];return array_merge($unlocked,$this->evaluateTracking());
     }
 
     public function unlockedForWorkout(int $sessionId): array
