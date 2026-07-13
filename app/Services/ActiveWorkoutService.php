@@ -167,8 +167,9 @@ final class ActiveWorkoutService
     {
         $state=$this->active();if(!$state)throw new RuntimeException('No active workout.');
         $remaining=array_map(fn($exercise)=>(int)$exercise['id'],$state['remainingExercises']);$orderedIds=array_values(array_unique(array_map('intval',$orderedIds)));
-        $sorted=$remaining;$expected=$remaining;sort($sorted);sort($orderedIds);
-        if($sorted!==$orderedIds)throw new RuntimeException('The remaining exercise list is incomplete.');
+        $activateId??=$orderedIds[0]??null;
+        $sorted=$remaining;$orderedForComparison=$orderedIds;sort($sorted);sort($orderedForComparison);
+        if($sorted!==$orderedForComparison)throw new RuntimeException('The remaining exercise list is incomplete.');
         if($activateId!==null&&!in_array($activateId,$remaining,true))throw new RuntimeException('Choose a remaining exercise.');
         $db=Database::connection();$completedPositions=array_map(fn($exercise)=>(int)$exercise['position'],array_filter($state['exercises'],fn($exercise)=>in_array($exercise['status'],['completed','skipped'],true)));$position=$completedPositions?max($completedPositions)+1:1;
         $db->beginTransaction();try{
