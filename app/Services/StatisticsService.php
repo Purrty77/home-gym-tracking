@@ -34,7 +34,7 @@ final class StatisticsService
         $totalWorkouts=(int)$db->query("SELECT COUNT(*) FROM workout_sessions WHERE status='completed'")->fetchColumn();
         $monthWorkouts=(int)$db->query("SELECT COUNT(*) FROM workout_sessions WHERE status='completed' AND YEAR(performed_at)=YEAR(CURRENT_DATE) AND MONTH(performed_at)=MONTH(CURRENT_DATE)")->fetchColumn();
         $workoutDates=array_column($heatmap,'workout_date');
-        ['current'=>$streak,'longest'=>$longestStreak]=$this->weeklyStreaks($workoutDates);
+        ['current'=>$streak,'longest'=>$longestStreak]=$this->dailyStreaks($workoutDates);
         $todayWorkout=WorkoutTemplate::forDay((int)(new DateTimeImmutable('today'))->format('N'));
         $nextWorkout=WorkoutTemplate::forDay((int)(new DateTimeImmutable('tomorrow'))->format('N'));
         $todayCompleted=$db->query("SELECT id,session_type,performed_at,workout_template_id FROM workout_sessions WHERE status='completed' AND DATE(performed_at)=CURRENT_DATE ORDER BY completed_at DESC,id DESC LIMIT 1")->fetch()?:null;
@@ -42,12 +42,12 @@ final class StatisticsService
         return compact('week','records','recordCount','weight','currentWeight','todayWeight','previousWeight','entryWeightChange','weightChange','weeklyWeightTrend','monthlyWeightTrend','weightGoal','due','lastMeasurement','nextReminder','progress','progressedThisMonth','heatmap','streak','longestStreak','totalWorkouts','monthWorkouts','todayWorkout','nextWorkout','todayCompleted');
     }
 
-    private function weeklyStreaks(array $dates): array
+    public function dailyStreaks(array $dates): array
     {
-        $active=[];foreach($dates as $date)$active[(new DateTimeImmutable($date))->modify('monday this week')->format('Y-m-d')]=true;
-        $week=(new DateTimeImmutable('today'))->modify('monday this week');
-        if(!isset($active[$week->format('Y-m-d')]))$week=$week->modify('-1 week');
-        $streak=0;while(isset($active[$week->format('Y-m-d')])){$streak++;$week=$week->modify('-1 week');}
-        $weeks=array_keys($active);sort($weeks);$longest=0;$run=0;$previous=null;foreach($weeks as $value){$current=new DateTimeImmutable($value);if($previous&&$previous->modify('+1 week')->format('Y-m-d')===$value)$run++;else $run=1;$longest=max($longest,$run);$previous=$current;}return ['current'=>$streak,'longest'=>$longest];
+        $active=[];foreach($dates as $date)$active[(new DateTimeImmutable($date))->format('Y-m-d')]=true;
+        $day=new DateTimeImmutable('today');
+        if(!isset($active[$day->format('Y-m-d')]))$day=$day->modify('-1 day');
+        $streak=0;while(isset($active[$day->format('Y-m-d')])){$streak++;$day=$day->modify('-1 day');}
+        $days=array_keys($active);sort($days);$longest=0;$run=0;$previous=null;foreach($days as $value){$current=new DateTimeImmutable($value);if($previous&&$previous->modify('+1 day')->format('Y-m-d')===$value)$run++;else $run=1;$longest=max($longest,$run);$previous=$current;}return ['current'=>$streak,'longest'=>$longest];
     }
 }
