@@ -46,4 +46,4 @@ $initial=$current??array_fill_keys(array_column($steps,'field'),'');$initial['me
     </form>
   </section>
 </div>
-<script defer src="/assets/js/measurements.js"></script>
+<script defer src="<?= e(asset('assets/js/measurements.js')) ?>"></script>

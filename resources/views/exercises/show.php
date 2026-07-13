@@ -29,4 +29,4 @@ $setText=fn($set)=>$set?number_format((float)$set['weight_kg'],2).' kg × '.(int
 
 <section class="card border-sky-900/50"><p class="text-sm font-bold text-sky-400">💡 INSIGHTS</p><div class="mt-3 space-y-2"><?php foreach($progress['insights'] as $insight): ?><p class="flex gap-2 text-zinc-300"><span class="text-sky-400">•</span><?= e($insight) ?></p><?php endforeach; ?></div></section>
 <?php endif; ?>
-<script defer src="/assets/js/exercise-progress.js"></script>
+<script defer src="<?= e(asset('assets/js/exercise-progress.js')) ?>"></script>

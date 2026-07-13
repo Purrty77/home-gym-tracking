@@ -11,9 +11,9 @@ $topLevel=['/dashboard','/workouts','/exercises','/achievements','/measurements'
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="<?= $appearanceTheme==='light'?'#f4f4f5':'#020617' ?>">
   <title><?= e(($title ?? 'Home Gym') . ' · Home Gym') ?></title>
-  <link rel="stylesheet" href="/assets/css/app.css">
-  <script defer src="/assets/vendor/chart.umd.js"></script>
-  <script defer src="/assets/js/app.js"></script>
+  <link rel="stylesheet" href="<?= e(asset('assets/css/app.css')) ?>">
+  <script defer src="<?= e(asset('assets/vendor/chart.umd.js')) ?>"></script>
+  <script defer src="<?= e(asset('assets/js/app.js')) ?>"></script>
 </head>
 <body class="min-h-screen">
   <header class="sticky top-0 z-40 border-b border-zinc-800 bg-zinc-950/95 backdrop-blur">

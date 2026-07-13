@@ -14,6 +14,7 @@ test('invalid training values are rejected',function(){expect(count(Validator::w
 test('a valid exercise is accepted',function(){expect(Validator::exercise(['name'=>'Squat','muscle_group_id'=>1,'recommended_rest_seconds'=>120])===[]);});
 test('a dated check-up may skip every optional measurement',function(){expect(Validator::measurement(['measured_on'=>'2026-07-12'])===[]);});
 test('HTML is escaped',function(){expect(e('<script>')==='&lt;script&gt;');});
+test('local assets are cache-busted',function(){expect(str_starts_with(asset('assets/js/app.js'),'/assets/js/app.js?v='));});
 test('workout streaks count consecutive days across week boundaries',function(){$today=new DateTimeImmutable('today');$dates=[$today->modify('-1 day')->format('Y-m-d'),$today->format('Y-m-d')];$streak=(new StatisticsService())->dailyStreaks($dates);expect($streak['current']===2&&$streak['longest']===2,'Sunday and Monday should be a two-day streak, not two weeks.');});
 
 $failures=0;foreach($tests as $result){[$status,$name]=$result;echo ($status==='ok'?'✓':'✗')." {$name}".($status==='fail'?': '.$result[2]:'').PHP_EOL;if($status==='fail')$failures++;}echo PHP_EOL.count($tests).' tests, '.$failures.' failure(s).'.PHP_EOL;exit($failures?1:0);

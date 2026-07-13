@@ -10,6 +10,14 @@ function url(string $path = ''): string
     return '/' . ltrim($path, '/');
 }
 
+function asset(string $path): string
+{
+    $path=ltrim($path,'/');
+    $file=dirname(__DIR__,2).'/public/'.$path;
+    $version=is_file($file)?(string)filemtime($file):'1';
+    return '/'.$path.'?v='.rawurlencode($version);
+}
+
 function route(string $name,array $parameters=[]): string
 {
     return \App\Core\Router::urlFor($name,$parameters);
