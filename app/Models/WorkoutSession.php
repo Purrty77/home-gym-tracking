@@ -14,7 +14,7 @@ final class WorkoutSession
         if(($filters['search']??'')!==''){$where[]='(ws.session_type LIKE ? OR EXISTS(SELECT 1 FROM workout_exercises sw JOIN exercises se ON se.id=sw.exercise_id WHERE sw.workout_session_id=ws.id AND se.name LIKE ?))';$term='%'.$filters['search'].'%';$params[]=$term;$params[]=$term;}
         if(($filters['plan']??'all')!=='all'){$where[]='ws.session_type=?';$params[]=$filters['plan'];}
         $period=$filters['period']??'all';if($period==='month')$where[]='ws.performed_at>=DATE_FORMAT(CURRENT_DATE,\'%Y-%m-01\')';elseif($period==='3months')$where[]='ws.performed_at>=CURRENT_DATE-INTERVAL 3 MONTH';elseif($period==='year')$where[]='YEAR(ws.performed_at)=YEAR(CURRENT_DATE)';
-        $sql="SELECT ws.*,COUNT(DISTINCT we.id) exercise_count,COUNT(es.id) set_count,SUM(es.set_type='working' AND es.completed=1) working_set_count,SUM(es.is_personal_record=1) personal_record_count,GROUP_CONCAT(DISTINCT e.name ORDER BY we.position SEPARATOR ' · ') exercise_names FROM workout_sessions ws LEFT JOIN workout_exercises we ON we.workout_session_id=ws.id LEFT JOIN exercises e ON e.id=we.exercise_id LEFT JOIN exercise_sets es ON es.workout_exercise_id=we.id WHERE ".implode(' AND ',$where).' GROUP BY ws.id ORDER BY ws.performed_at DESC';
+        $sql="SELECT ws.*,COUNT(DISTINCT we.id) exercise_count,COUNT(es.id) set_count,SUM(es.set_type='working' AND es.completed=1) working_set_count,SUM(es.is_personal_record=1) personal_record_count,COUNT(DISTINCT CASE WHEN we.status='skipped' THEN we.id END) skipped_exercise_count,GROUP_CONCAT(DISTINCT e.name ORDER BY we.position SEPARATOR ' · ') exercise_names FROM workout_sessions ws LEFT JOIN workout_exercises we ON we.workout_session_id=ws.id LEFT JOIN exercises e ON e.id=we.exercise_id LEFT JOIN exercise_sets es ON es.workout_exercise_id=we.id WHERE ".implode(' AND ',$where).' GROUP BY ws.id ORDER BY ws.performed_at DESC';
         $stmt=$db->prepare($sql);$stmt->execute($params);return $stmt->fetchAll();
     }
 
@@ -44,7 +44,7 @@ final class WorkoutSession
         $stmt = $db->prepare('SELECT * FROM workout_sessions WHERE id=?'); $stmt->execute([$id]);
         $session = $stmt->fetch();
         if (!$session) return null;
-        $stmt = $db->prepare("SELECT we.id workout_exercise_id,we.exercise_id,we.notes exercise_notes,e.name,e.recommended_rest_seconds,es.* FROM workout_exercises we JOIN exercises e ON e.id=we.exercise_id LEFT JOIN exercise_sets es ON es.workout_exercise_id=we.id WHERE we.workout_session_id=? ORDER BY we.position,es.position");
+        $stmt = $db->prepare("SELECT we.id workout_exercise_id,we.exercise_id,we.notes exercise_notes,we.status exercise_status,e.name,e.recommended_rest_seconds,es.* FROM workout_exercises we JOIN exercises e ON e.id=we.exercise_id LEFT JOIN exercise_sets es ON es.workout_exercise_id=we.id WHERE we.workout_session_id=? ORDER BY we.position,es.position");
         $stmt->execute([$id]);
         $session['rows'] = $stmt->fetchAll();
         $segments=$db->prepare('SELECT ss.* FROM exercise_set_segments ss JOIN exercise_sets es ON es.id=ss.exercise_set_id JOIN workout_exercises we ON we.id=es.workout_exercise_id WHERE we.workout_session_id=? ORDER BY ss.exercise_set_id,ss.position');$segments->execute([$id]);$bySet=[];foreach($segments->fetchAll() as $segment)$bySet[(int)$segment['exercise_set_id']][]=$segment;foreach($session['rows'] as &$row)$row['segments']=$row['id']?($bySet[(int)$row['id']]??[]):[];unset($row);

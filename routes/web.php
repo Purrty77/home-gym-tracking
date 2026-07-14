@@ -42,10 +42,12 @@ $router->post('/workouts/active/warmup',[WorkoutModeController::class,'warmup'],
 $router->post('/workouts/active/add-set',[WorkoutModeController::class,'addSet'],'workouts.active.add-set');
 $router->post('/workouts/active/remove-set',[WorkoutModeController::class,'removeSet'],'workouts.active.remove-set');
 $router->post('/workouts/active/reorder',[WorkoutModeController::class,'reorder'],'workouts.active.reorder');
+$router->post('/workouts/active/switch-exercise',[WorkoutModeController::class,'switchExercise'],'workouts.active.switch-exercise');
 $router->post('/workouts/active/body-weight',[WorkoutModeController::class,'bodyWeight'],'workouts.active.body-weight');
 $router->post('/workouts/active/replace-exercise',[WorkoutModeController::class,'replaceExercise'],'workouts.active.replace-exercise');
 $router->post('/workouts/active/timer',[WorkoutModeController::class,'timer'],'workouts.active.timer');
 $router->get('/workouts/active/summary',[WorkoutModeController::class,'summary'],'workouts.active.summary');
+$router->post('/workouts/active/finish-early',[WorkoutModeController::class,'finishEarly'],'workouts.active.finish-early');
 $router->post('/workouts/active/finish',[WorkoutModeController::class,'finish'],'workouts.active.finish');
 $router->post('/workouts/active/end',[WorkoutModeController::class,'abandon'],'workouts.active.end');
 $router->post('/workouts/active/cancel',[WorkoutModeController::class,'cancel'],'workouts.active.cancel');

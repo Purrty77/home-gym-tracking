@@ -64,9 +64,9 @@ final class ActiveWorkoutService
             $completedSets=array_values(array_filter($allSets,fn($set)=>(int)$set['completed']===1));
             $completedWorking=array_values(array_filter($completedSets,fn($set)=>$set['set_type']==='working'));
             $extraSets=array_values(array_filter($allSets,fn($set)=>(int)$set['is_extra']===1));
-            foreach($allSets as $set)if((int)$set['position']===(int)$session['current_set_position'])$currentSet=$set;
+            foreach($allSets as $set)if((int)$set['position']===(int)$current['current_set_position'])$currentSet=$set;
             if(!$currentSet)foreach($allSets as $set)if((int)$set['completed']===0){$currentSet=$set;break;}
-            if($currentSet&&(int)$currentSet['position']!==(int)$session['current_set_position']){$session['current_set_position']=$currentSet['position'];$db->prepare('UPDATE workout_sessions SET current_set_position=? WHERE id=?')->execute([$currentSet['position'],$sessionId]);}
+            if($currentSet&&(int)$currentSet['position']!==(int)$current['current_set_position']){$current['current_set_position']=$currentSet['position'];$session['current_set_position']=$currentSet['position'];$db->prepare('UPDATE workout_exercises SET current_set_position=? WHERE id=?')->execute([$currentSet['position'],$current['id']]);$db->prepare('UPDATE workout_sessions SET current_set_position=? WHERE id=?')->execute([$currentSet['position'],$sessionId]);}
 
             $stmt=$db->prepare("SELECT es.* FROM exercise_sets es JOIN workout_exercises we ON we.id=es.workout_exercise_id JOIN workout_sessions ws ON ws.id=we.workout_session_id WHERE we.exercise_id=? AND ws.status='completed' AND ws.id<>? AND es.set_type='working' AND es.completed=1 AND ws.id=(SELECT MAX(ws2.id) FROM workout_sessions ws2 JOIN workout_exercises we2 ON we2.workout_session_id=ws2.id WHERE we2.exercise_id=? AND ws2.status='completed') ORDER BY es.position");
             $stmt->execute([$current['exercise_id'],$sessionId,$current['exercise_id']]);$previous=$stmt->fetchAll();
@@ -79,12 +79,15 @@ final class ActiveWorkoutService
                 $stmt->execute([$current['muscle_group_id'],$current['exercise_id'],$sessionId]);$replacementCandidates=$stmt->fetchAll();
             }
         }
+        foreach($exercises as &$exercise)$exercise['rest_remaining']=$exercise['rest_ends_at']?max(0,strtotime($exercise['rest_ends_at'])-time()):(int)($exercise['rest_paused_seconds']??0);unset($exercise);
+        if($current)foreach($exercises as $exercise)if((int)$exercise['id']===(int)$current['id']){$current=$exercise;break;}
         $remainingExercises=array_values(array_filter($exercises,fn($exercise)=>!in_array($exercise['status'],['completed','skipped'],true)));
-        $remaining=$session['rest_ends_at']?max(0,strtotime($session['rest_ends_at'])-time()):0;
+        $activeExercises=array_values(array_filter($remainingExercises,fn($exercise)=>$exercise['status']==='active'));
+        $remaining=$current&&$current['rest_ends_at']?max(0,strtotime($current['rest_ends_at'])-time()):0;
         $settings=$db->query("SELECT setting_key,setting_value FROM settings WHERE setting_key IN ('timer_sound_enabled','timer_vibration_enabled','warmup_default_behavior')")->fetchAll(PDO::FETCH_KEY_PAIR);
         $warmupPrompt=$current&&$current['warmup_decision']==='pending'&&!$completedSets;
         $workingSetNumber=$currentSet&&$currentSet['set_type']==='working'?count($completedWorking)+1:null;
-        return compact('session','exercises','remainingExercises','current','currentSet','extraSets','replacementCandidates','previous','completedSets','completedWorking','defaultWeight','remaining','settings','warmupPrompt','workingSetNumber');
+        return compact('session','exercises','remainingExercises','activeExercises','current','currentSet','extraSets','replacementCandidates','previous','completedSets','completedWorking','defaultWeight','remaining','settings','warmupPrompt','workingSetNumber');
     }
 
     public function decideWarmup(bool $add): array
@@ -99,6 +102,7 @@ final class ActiveWorkoutService
                 $db->prepare("INSERT INTO exercise_sets(workout_exercise_id,position,set_type,rest_seconds,completed,is_extra) VALUES(?,1,'warmup',?,0,0)")->execute([$state['current']['id'],$state['current']['planned_rest_seconds']]);
             }
             $db->prepare('UPDATE workout_exercises SET warmup_decision=? WHERE id=?')->execute([$add?'added':'skipped',$state['current']['id']]);
+            $db->prepare('UPDATE workout_exercises SET current_set_position=1 WHERE id=?')->execute([$state['current']['id']]);
             $db->prepare('UPDATE workout_sessions SET current_set_position=1 WHERE id=?')->execute([$state['session']['id']]);
             $db->commit();return ['status'=>$add?'added':'skipped'];
         }catch(Throwable $e){$db->rollBack();throw $e;}
@@ -122,14 +126,15 @@ final class ActiveWorkoutService
             $stmt=$db->prepare('SELECT position FROM exercise_sets WHERE workout_exercise_id=? AND completed=0 ORDER BY position LIMIT 1');$stmt->execute([$current['id']]);$nextPosition=$stmt->fetchColumn();
             if($nextPosition!==false){
                 $rest=(int)$current['planned_rest_seconds'];
-                $db->prepare('UPDATE workout_sessions SET current_set_position=?,rest_ends_at=DATE_ADD(NOW(),INTERVAL ? SECOND),rest_paused_seconds=NULL WHERE id=?')->execute([$nextPosition,$rest,$session['id']]);
+                $db->prepare('UPDATE workout_exercises SET current_set_position=?,rest_ends_at=DATE_ADD(NOW(),INTERVAL ? SECOND),rest_paused_seconds=NULL WHERE id=?')->execute([$nextPosition,$rest,$current['id']]);
+                $db->prepare('UPDATE workout_sessions SET current_set_position=? WHERE id=?')->execute([$nextPosition,$session['id']]);
                 $db->commit();return ['status'=>'set_completed','rest_seconds'=>$rest,'personal_record'=>$isRecord,'set_id'=>(int)$existing['id']];
             }
-            $db->prepare("UPDATE workout_exercises SET status='completed',completed_at=NOW() WHERE id=?")->execute([$current['id']]);
-            $stmt=$db->prepare("SELECT we.id,e.name FROM workout_exercises we JOIN exercises e ON e.id=we.exercise_id WHERE we.workout_session_id=? AND we.status='pending' ORDER BY we.position LIMIT 1");$stmt->execute([$session['id']]);$next=$stmt->fetch();
+            $db->prepare("UPDATE workout_exercises SET status='completed',completed_at=NOW(),rest_ends_at=NULL,rest_paused_seconds=NULL WHERE id=?")->execute([$current['id']]);
+            $stmt=$db->prepare("SELECT we.id,e.name,we.status,we.current_set_position FROM workout_exercises we JOIN exercises e ON e.id=we.exercise_id WHERE we.workout_session_id=? AND we.status IN ('active','pending') ORDER BY we.status='active' DESC,we.position LIMIT 1");$stmt->execute([$session['id']]);$next=$stmt->fetch();
             if($next){
                 $db->prepare("UPDATE workout_exercises SET status='active',started_at=COALESCE(started_at,NOW()) WHERE id=?")->execute([$next['id']]);
-                $db->prepare('UPDATE workout_sessions SET current_workout_exercise_id=?,current_set_position=1,rest_ends_at=NULL,rest_paused_seconds=NULL WHERE id=?')->execute([$next['id'],$session['id']]);
+                $db->prepare('UPDATE workout_sessions SET current_workout_exercise_id=?,current_set_position=?,rest_ends_at=NULL,rest_paused_seconds=NULL WHERE id=?')->execute([$next['id'],$next['current_set_position'],$session['id']]);
                 $db->commit();return ['status'=>'exercise_completed','exercise'=>$current['name'],'best_weight'=>$best['weight_kg'],'best_reps'=>$best['repetitions'],'next_exercise'=>$next['name'],'personal_record'=>$isRecord];
             }
             $db->prepare('UPDATE workout_sessions SET current_workout_exercise_id=NULL,rest_ends_at=NULL,rest_paused_seconds=NULL WHERE id=?')->execute([$session['id']]);
@@ -175,14 +180,19 @@ final class ActiveWorkoutService
         $db->beginTransaction();try{
             $update=$db->prepare('UPDATE workout_exercises SET position=? WHERE id=?');foreach($orderedIds as $id)$update->execute([$position++,$id]);
             if($activateId!==null){
-                $db->prepare("UPDATE workout_exercises SET status='pending' WHERE workout_session_id=? AND status='active'")->execute([$state['session']['id']]);
                 $db->prepare("UPDATE workout_exercises SET status='active',started_at=COALESCE(started_at,NOW()) WHERE id=?")->execute([$activateId]);
-                $stmt=$db->prepare('SELECT COALESCE(MIN(position),1) FROM exercise_sets WHERE workout_exercise_id=? AND completed=0');$stmt->execute([$activateId]);$setPosition=(int)$stmt->fetchColumn();
-                $db->prepare('UPDATE workout_sessions SET current_workout_exercise_id=?,current_set_position=?,rest_ends_at=NULL,rest_paused_seconds=NULL WHERE id=?')->execute([$activateId,$setPosition,$state['session']['id']]);
+                $stmt=$db->prepare('SELECT current_set_position FROM workout_exercises WHERE id=?');$stmt->execute([$activateId]);$setPosition=(int)$stmt->fetchColumn();
+                $db->prepare('UPDATE workout_sessions SET current_workout_exercise_id=?,current_set_position=? WHERE id=?')->execute([$activateId,$setPosition,$state['session']['id']]);
             }
             $db->prepare('UPDATE workout_sessions SET template_order_changed=1 WHERE id=?')->execute([$state['session']['id']]);
             $db->commit();return ['status'=>'reordered'];
         }catch(Throwable $e){$db->rollBack();throw $e;}
+    }
+
+    public function switchExercise(int $workoutExerciseId): array
+    {
+        $state=$this->active();if(!$state)throw new RuntimeException('No active workout.');$target=null;foreach($state['remainingExercises'] as $exercise)if((int)$exercise['id']===$workoutExerciseId)$target=$exercise;if(!$target)throw new RuntimeException('Choose an unfinished exercise.');
+        $db=Database::connection();$db->prepare("UPDATE workout_exercises SET status='active',started_at=COALESCE(started_at,NOW()) WHERE id=?")->execute([$workoutExerciseId]);$db->prepare('UPDATE workout_sessions SET current_workout_exercise_id=?,current_set_position=? WHERE id=?')->execute([$workoutExerciseId,(int)$target['current_set_position'],$state['session']['id']]);return ['status'=>'switched','exercise'=>$target['name'],'rest_remaining'=>(int)$target['rest_remaining']];
     }
 
     public function bodyWeight(mixed $weight): array
@@ -196,20 +206,29 @@ final class ActiveWorkoutService
             $db->prepare("DELETE FROM exercise_sets WHERE workout_exercise_id=? AND completed=0 AND set_type='warmup'")->execute([$state['current']['id']]);
             $stmt=$db->prepare('SELECT id FROM exercise_sets WHERE workout_exercise_id=? ORDER BY position');$stmt->execute([$state['current']['id']]);$sets=$stmt->fetchAll(PDO::FETCH_COLUMN);$db->prepare('UPDATE exercise_sets SET position=position+1000 WHERE workout_exercise_id=?')->execute([$state['current']['id']]);$position=1;$move=$db->prepare('UPDATE exercise_sets SET position=? WHERE id=?');foreach($sets as $setId)$move->execute([$position++,$setId]);
             if($decision==='added'){$db->prepare('UPDATE exercise_sets SET position=position+1 WHERE workout_exercise_id=? ORDER BY position DESC')->execute([$state['current']['id']]);$db->prepare("INSERT INTO exercise_sets(workout_exercise_id,position,set_type,rest_seconds,completed,is_extra) VALUES(?,1,'warmup',?,0,0)")->execute([$state['current']['id'],$candidate['recommended_rest_seconds']]);}
-            $db->prepare('UPDATE workout_exercises SET exercise_id=?,planned_rest_seconds=?,warmup_decision=? WHERE id=?')->execute([$exerciseId,$candidate['recommended_rest_seconds'],$decision,$state['current']['id']]);$db->prepare('UPDATE exercise_sets SET weight_kg=NULL,repetitions=NULL,rest_seconds=? WHERE workout_exercise_id=? AND completed=0')->execute([$candidate['recommended_rest_seconds'],$state['current']['id']]);$db->prepare('UPDATE workout_sessions SET current_set_position=1 WHERE id=?')->execute([$state['session']['id']]);$db->commit();return ['status'=>'replaced','exercise'=>$candidate['name'],'warmup'=>$decision];
+            $db->prepare('UPDATE workout_exercises SET exercise_id=?,planned_rest_seconds=?,warmup_decision=?,current_set_position=1,rest_ends_at=NULL,rest_paused_seconds=NULL WHERE id=?')->execute([$exerciseId,$candidate['recommended_rest_seconds'],$decision,$state['current']['id']]);$db->prepare('UPDATE exercise_sets SET weight_kg=NULL,repetitions=NULL,rest_seconds=? WHERE workout_exercise_id=? AND completed=0')->execute([$candidate['recommended_rest_seconds'],$state['current']['id']]);$db->prepare('UPDATE workout_sessions SET current_set_position=1 WHERE id=?')->execute([$state['session']['id']]);$db->commit();return ['status'=>'replaced','exercise'=>$candidate['name'],'warmup'=>$decision];
         }catch(Throwable $e){$db->rollBack();throw $e;}
     }
 
     public function timer(string $action): array
     {
-        $state=$this->active();if(!$state)return ['remaining'=>0];$id=$state['session']['id'];$db=Database::connection();if($action==='add')$db->prepare('UPDATE workout_sessions SET rest_ends_at=DATE_ADD(COALESCE(rest_ends_at,NOW()),INTERVAL 30 SECOND) WHERE id=?')->execute([$id]);elseif($action==='pause')$db->prepare('UPDATE workout_sessions SET rest_paused_seconds=GREATEST(TIMESTAMPDIFF(SECOND,NOW(),rest_ends_at),0),rest_ends_at=NULL WHERE id=?')->execute([$id]);elseif($action==='resume')$db->prepare('UPDATE workout_sessions SET rest_ends_at=DATE_ADD(NOW(),INTERVAL COALESCE(rest_paused_seconds,0) SECOND),rest_paused_seconds=NULL WHERE id=?')->execute([$id]);else $db->prepare('UPDATE workout_sessions SET rest_ends_at=NULL,rest_paused_seconds=NULL WHERE id=?')->execute([$id]);return ['remaining'=>$this->active()['remaining']];
+        $state=$this->active();if(!$state||!$state['current'])return ['remaining'=>0];$id=$state['current']['id'];$db=Database::connection();if($action==='add')$db->prepare('UPDATE workout_exercises SET rest_ends_at=DATE_ADD(COALESCE(rest_ends_at,NOW()),INTERVAL 30 SECOND) WHERE id=?')->execute([$id]);elseif($action==='pause')$db->prepare('UPDATE workout_exercises SET rest_paused_seconds=GREATEST(TIMESTAMPDIFF(SECOND,NOW(),rest_ends_at),0),rest_ends_at=NULL WHERE id=?')->execute([$id]);elseif($action==='resume')$db->prepare('UPDATE workout_exercises SET rest_ends_at=DATE_ADD(NOW(),INTERVAL COALESCE(rest_paused_seconds,0) SECOND),rest_paused_seconds=NULL WHERE id=?')->execute([$id]);else $db->prepare('UPDATE workout_exercises SET rest_ends_at=NULL,rest_paused_seconds=NULL WHERE id=?')->execute([$id]);return ['remaining'=>$this->active()['remaining']];
+    }
+
+    public function finishEarly(): array
+    {
+        $state=$this->active();if(!$state)throw new RuntimeException('No active workout.');$db=Database::connection();$id=(int)$state['session']['id'];$db->beginTransaction();try{
+            $db->prepare("UPDATE workout_exercises we SET status=CASE WHEN EXISTS(SELECT 1 FROM exercise_sets es WHERE es.workout_exercise_id=we.id AND es.completed=1 AND es.set_type='working') THEN 'completed' ELSE 'skipped' END,completed_at=NOW(),rest_ends_at=NULL,rest_paused_seconds=NULL WHERE we.workout_session_id=? AND we.status IN ('active','pending')")->execute([$id]);
+            $skipped=(int)$db->query("SELECT COUNT(*) FROM workout_exercises WHERE workout_session_id={$id} AND status='skipped'")->fetchColumn();
+            $db->prepare('UPDATE workout_sessions SET current_workout_exercise_id=NULL,rest_ends_at=NULL,rest_paused_seconds=NULL WHERE id=?')->execute([$id]);$db->commit();return ['status'=>'ready_to_finish','skipped'=>$skipped];
+        }catch(Throwable $e){$db->rollBack();throw $e;}
     }
 
     public function finish(?string $notes=null,bool $updateOrder=false,bool $updateSets=false): int
     {
         $state=$this->active();if(!$state)throw new RuntimeException('No active workout.');$db=Database::connection();$id=(int)$state['session']['id'];$templateId=(int)($state['session']['workout_template_id']??0);
         if($templateId&&($updateOrder||$updateSets))$this->updateTemplate($state,$updateOrder,$updateSets);
-        $db->prepare("UPDATE workout_sessions SET status='completed',notes=COALESCE(NULLIF(?,''),notes),completed_at=NOW(),current_workout_exercise_id=NULL,rest_ends_at=NULL WHERE id=?")->execute([trim((string)$notes),$id]);return $id;
+        $db->prepare('UPDATE workout_exercises SET rest_ends_at=NULL,rest_paused_seconds=NULL WHERE workout_session_id=?')->execute([$id]);$db->prepare("UPDATE workout_sessions SET status='completed',notes=COALESCE(NULLIF(?,''),notes),completed_at=NOW(),current_workout_exercise_id=NULL,rest_ends_at=NULL WHERE id=?")->execute([trim((string)$notes),$id]);return $id;
     }
 
     public function abandon(): void {$state=$this->active();if($state)Database::connection()->prepare("UPDATE workout_sessions SET status='abandoned',completed_at=NOW(),current_workout_exercise_id=NULL,rest_ends_at=NULL WHERE id=?")->execute([$state['session']['id']]);}
@@ -217,7 +236,7 @@ final class ActiveWorkoutService
 
     public function summary(): array
     {
-        $state=$this->active();if(!$state)throw new RuntimeException('No active workout.');$stmt=Database::connection()->prepare("SELECT e.name,MAX(es.weight_kg) best_weight,MAX(CASE WHEN es.weight_kg=(SELECT MAX(es2.weight_kg) FROM exercise_sets es2 WHERE es2.workout_exercise_id=we.id AND es2.completed=1 AND es2.set_type='working') THEN es.repetitions END) best_reps,COUNT(es.id) working_sets,MAX(es.is_personal_record) personal_record,SUM(COALESCE((SELECT SUM(ss.weight_kg*ss.repetitions) FROM exercise_set_segments ss WHERE ss.exercise_set_id=es.id),es.weight_kg*es.repetitions,0)) total_volume FROM workout_exercises we JOIN exercises e ON e.id=we.exercise_id LEFT JOIN exercise_sets es ON es.workout_exercise_id=we.id AND es.completed=1 AND es.set_type='working' WHERE we.workout_session_id=? GROUP BY we.id,e.name ORDER BY we.position");$stmt->execute([$state['session']['id']]);$state['summary']=$stmt->fetchAll();return $state;
+        $state=$this->active();if(!$state)throw new RuntimeException('No active workout.');$stmt=Database::connection()->prepare("SELECT e.name,we.status,MAX(es.weight_kg) best_weight,MAX(CASE WHEN es.weight_kg=(SELECT MAX(es2.weight_kg) FROM exercise_sets es2 WHERE es2.workout_exercise_id=we.id AND es2.completed=1 AND es2.set_type='working') THEN es.repetitions END) best_reps,COUNT(es.id) working_sets,MAX(es.is_personal_record) personal_record,SUM(COALESCE((SELECT SUM(ss.weight_kg*ss.repetitions) FROM exercise_set_segments ss WHERE ss.exercise_set_id=es.id),es.weight_kg*es.repetitions,0)) total_volume FROM workout_exercises we JOIN exercises e ON e.id=we.exercise_id LEFT JOIN exercise_sets es ON es.workout_exercise_id=we.id AND es.completed=1 AND es.set_type='working' WHERE we.workout_session_id=? GROUP BY we.id,e.name,we.status ORDER BY we.position");$stmt->execute([$state['session']['id']]);$state['summary']=$stmt->fetchAll();$state['skippedCount']=count(array_filter($state['summary'],fn($row)=>$row['status']==='skipped'));return $state;
     }
 
     private function parseSegments(array $data): array
