@@ -68,6 +68,7 @@ CREATE TABLE workout_sessions (
     template_sets_changed BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    last_edited_at DATETIME NULL,
     INDEX idx_sessions_date (performed_at)
 ) ENGINE=InnoDB;
 
@@ -77,6 +78,7 @@ CREATE TABLE workout_exercises (
     exercise_id INT UNSIGNED NOT NULL,
     position SMALLINT UNSIGNED NOT NULL DEFAULT 1,
     notes TEXT NULL,
+    load_semantics ENUM('total','per_dumbbell','machine_stack','added_plates') NULL,
     status ENUM('pending','active','completed','skipped') NOT NULL DEFAULT 'completed',
     target_set_count TINYINT UNSIGNED NULL,
     target_repetitions_min SMALLINT UNSIGNED NULL,

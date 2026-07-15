@@ -7,6 +7,7 @@ use App\Models\WorkoutTemplate;
 use App\Core\Validator;
 use App\Services\AchievementService;
 use App\Models\BodyWeightEntry;
+use App\Services\HistoricalWorkoutRecalculationService;
 final class SessionController extends Controller
 {
     public function index(): void
@@ -30,7 +31,7 @@ final class SessionController extends Controller
     }
     public function show(string $id): void { $session=WorkoutSession::find((int)$id); if(!$session){http_response_code(404);$this->view('errors/404');return;} $this->view('sessions/show',compact('session')); }
     public function edit(string $id): void { $session=WorkoutSession::forEdit((int)$id);if(!$session){http_response_code(404);$this->view('errors/404');return;}$this->view('sessions/create',['exercises'=>Exercise::all(),'session'=>$session,'templates'=>WorkoutTemplate::all(),'selectedTemplate'=>null,'preset'=>[],'formDate'=>date('Y-m-d',strtotime($session['performed_at']))]); }
-    public function update(string $id): void { if($errors=Validator::workout($_POST)){$_SESSION['_flash']['error']=implode(' ',$errors);$this->redirect(route('workouts.edit',['id'=>$id]));}WorkoutSession::update((int)$id,$_POST);$this->syncBodyWeight($_POST);$unlocked=(new AchievementService())->evaluateWorkout((int)$id);$this->redirect(route('workouts.show',['id'=>$id]),'Workout updated.'.($unlocked?' 🏆 Achievement unlocked: '.$unlocked[0]['name']:'')); }
+    public function update(string $id): void { if($errors=Validator::workout($_POST)){$_SESSION['_flash']['error']=implode(' ',$errors);$this->redirect(route('workouts.edit',['id'=>$id]));}$existing=WorkoutSession::find((int)$id);if(!$existing){http_response_code(404);$this->view('errors/404');return;}WorkoutSession::update((int)$id,$_POST);BodyWeightEntry::syncWorkoutEdit(date('Y-m-d',strtotime($existing['performed_at'])),date('Y-m-d',strtotime((string)$_POST['performed_at'])),$_POST['body_weight_kg']??null);(new HistoricalWorkoutRecalculationService())->recalculate((int)$id);$this->redirect(route('workouts.show',['id'=>$id]),'Workout updated successfully.'); }
     public function destroy(string $id): void { WorkoutSession::delete((int)$id); $this->redirect(route('workouts.index'),'Workout deleted.'); }
 
     private function syncBodyWeight(array $data): void

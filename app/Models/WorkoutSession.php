@@ -44,7 +44,7 @@ final class WorkoutSession
         $stmt = $db->prepare('SELECT * FROM workout_sessions WHERE id=?'); $stmt->execute([$id]);
         $session = $stmt->fetch();
         if (!$session) return null;
-        $stmt = $db->prepare("SELECT we.id workout_exercise_id,we.exercise_id,we.notes exercise_notes,we.status exercise_status,e.name,e.recommended_rest_seconds,es.* FROM workout_exercises we JOIN exercises e ON e.id=we.exercise_id LEFT JOIN exercise_sets es ON es.workout_exercise_id=we.id WHERE we.workout_session_id=? ORDER BY we.position,es.position");
+        $stmt = $db->prepare("SELECT we.id workout_exercise_id,we.exercise_id,we.notes exercise_notes,we.status exercise_status,COALESCE(we.load_semantics,e.load_semantics) load_semantics,e.name,e.recommended_rest_seconds,es.* FROM workout_exercises we JOIN exercises e ON e.id=we.exercise_id LEFT JOIN exercise_sets es ON es.workout_exercise_id=we.id WHERE we.workout_session_id=? ORDER BY we.position,es.position");
         $stmt->execute([$id]);
         $session['rows'] = $stmt->fetchAll();
         $segments=$db->prepare('SELECT ss.* FROM exercise_set_segments ss JOIN exercise_sets es ON es.id=ss.exercise_set_id JOIN workout_exercises we ON we.id=es.workout_exercise_id WHERE we.workout_session_id=? ORDER BY ss.exercise_set_id,ss.position');$segments->execute([$id]);$bySet=[];foreach($segments->fetchAll() as $segment)$bySet[(int)$segment['exercise_set_id']][]=$segment;foreach($session['rows'] as &$row)$row['segments']=$row['id']?($bySet[(int)$row['id']]??[]):[];unset($row);
@@ -56,10 +56,11 @@ final class WorkoutSession
         $db = Database::connection();
         $db->beginTransaction();
         try {
-            $stmt = $db->prepare('INSERT INTO workout_sessions(performed_at,session_type,body_weight_kg,notes) VALUES(?,?,?,?)');
-            $stmt->execute([$data['performed_at'], trim($data['session_type']), $data['body_weight_kg'] ?: null, trim($data['notes'] ?? '') ?: null]);
+            $templateId=ctype_digit((string)($data['workout_template_id']??''))?(int)$data['workout_template_id']:null;
+            $stmt = $db->prepare('INSERT INTO workout_sessions(workout_template_id,performed_at,session_type,body_weight_kg,notes) VALUES(?,?,?,?,?)');
+            $stmt->execute([$templateId,$data['performed_at'],trim($data['session_type']),($data['body_weight_kg']??'')!==''?$data['body_weight_kg']:null,trim($data['notes']??'')?:null]);
             $sessionId = (int) $db->lastInsertId();
-            self::saveExercises($db, $sessionId, $data['exercises'] ?? []);
+            self::saveExercises($db,$sessionId,$data['exercises']??[],$templateId);
             $db->commit();
             return $sessionId;
         } catch (Throwable $e) {
@@ -71,25 +72,59 @@ final class WorkoutSession
     {
         $db=Database::connection();$db->beginTransaction();
         try {
-            $stmt=$db->prepare('UPDATE workout_sessions SET performed_at=?,session_type=?,body_weight_kg=?,notes=? WHERE id=?');
-            $stmt->execute([$data['performed_at'],trim($data['session_type']),$data['body_weight_kg']?:null,trim($data['notes']??'')?:null,$id]);
+            $templateId=ctype_digit((string)($data['workout_template_id']??''))?(int)$data['workout_template_id']:null;
+            $stmt=$db->prepare('UPDATE workout_sessions SET workout_template_id=?,performed_at=?,session_type=?,body_weight_kg=?,notes=?,last_edited_at=NOW() WHERE id=?');
+            $stmt->execute([$templateId,$data['performed_at'],trim($data['session_type']),($data['body_weight_kg']??'')!==''?$data['body_weight_kg']:null,trim($data['notes']??'')?:null,$id]);
             $stmt=$db->prepare('DELETE FROM workout_exercises WHERE workout_session_id=?');$stmt->execute([$id]);
-            self::saveExercises($db,$id,$data['exercises']??[]);$db->commit();
+            self::saveExercises($db,$id,$data['exercises']??[],$templateId);$db->commit();
         } catch(Throwable $e){$db->rollBack();throw $e;}
     }
 
     public static function forEdit(int $id): ?array
     {
         $session=self::find($id);if(!$session)return null;$exercises=[];
-        foreach($session['rows'] as $row){$key=$row['workout_exercise_id'];if(!isset($exercises[$key]))$exercises[$key]=['exercise_id'=>$row['exercise_id'],'notes'=>$row['exercise_notes'],'sets'=>[]];if($row['id'])$exercises[$key]['sets'][]=['set_type'=>$row['set_type'],'weight_kg'=>$row['weight_kg'],'repetitions'=>$row['repetitions'],'rest_seconds'=>$row['rest_seconds'],'notes'=>$row['notes']];}
+        foreach($session['rows'] as $row){$key=$row['workout_exercise_id'];if(!isset($exercises[$key]))$exercises[$key]=['exercise_id'=>$row['exercise_id'],'notes'=>$row['exercise_notes'],'status'=>$row['exercise_status'],'load_semantics'=>$row['load_semantics'],'original'=>true,'sets'=>[]];if($row['id'])$exercises[$key]['sets'][]=['set_type'=>$row['set_type'],'weight_kg'=>$row['weight_kg'],'repetitions'=>$row['repetitions'],'rest_seconds'=>$row['rest_seconds'],'notes'=>$row['notes'],'segments'=>$row['segments']??[]];}
         $session['exercises']=array_values($exercises);return $session;
     }
 
-    private static function saveExercises(PDO $db,int $sessionId,array $exercises): void
+    private static function saveExercises(PDO $db,int $sessionId,array $exercises,?int $templateId=null): void
     {
-        $weStmt=$db->prepare('INSERT INTO workout_exercises(workout_session_id,exercise_id,position,notes) VALUES(?,?,?,?)');
+        $weStmt=$db->prepare("INSERT INTO workout_exercises(workout_session_id,exercise_id,position,notes,load_semantics,status,completed_at) VALUES(?,?,?,?,?,?,CASE WHEN ?='completed' THEN NOW() ELSE NULL END)");
         $setStmt=$db->prepare('INSERT INTO exercise_sets(workout_exercise_id,position,set_type,weight_kg,repetitions,rest_seconds,notes,completed) VALUES(?,?,?,?,?,?,?,?)');
-        foreach($exercises as $exercisePosition=>$exercise){if(empty($exercise['exercise_id']))continue;$weStmt->execute([$sessionId,(int)$exercise['exercise_id'],$exercisePosition+1,trim($exercise['notes']??'')?:null]);$weId=(int)$db->lastInsertId();foreach(($exercise['sets']??[]) as $setPosition=>$set){if(($set['weight_kg']??'')===''&&($set['repetitions']??'')==='')continue;$type=in_array($set['set_type']??'',['warmup','ramp','working'],true)?$set['set_type']:'working';$setStmt->execute([$weId,$setPosition+1,$type,$set['weight_kg']!==''?$set['weight_kg']:null,$set['repetitions']!==''?$set['repetitions']:null,$set['rest_seconds']!==''?$set['rest_seconds']:null,trim($set['notes']??'')?:null,1]);}}
+        $segmentStmt=$db->prepare('INSERT INTO exercise_set_segments(exercise_set_id,position,weight_kg,repetitions,is_personal_record) VALUES(?,?,?,?,0)');
+        foreach($exercises as $exercisePosition=>$exercise){
+            if(empty($exercise['exercise_id']))continue;
+            $exerciseId=(int)$exercise['exercise_id'];
+            $status=($exercise['status']??'completed')==='skipped'?'skipped':'completed';
+            $semantics=in_array($exercise['load_semantics']??'',['total','per_dumbbell','machine_stack','added_plates'],true)?$exercise['load_semantics']:null;
+            $weStmt->execute([$sessionId,$exerciseId,$exercisePosition+1,trim($exercise['notes']??'')?:null,$semantics,$status,$status]);
+            $weId=(int)$db->lastInsertId();
+            if($status!=='skipped'){
+                foreach(($exercise['sets']??[]) as $setPosition=>$set){
+                    $segments=[];
+                    foreach(($set['segments']??[]) as $segment){
+                        if(($segment['weight_kg']??'')!==''||($segment['repetitions']??'')!=='')$segments[]=['weight_kg'=>$segment['weight_kg'],'repetitions'=>$segment['repetitions']];
+                    }
+                    if(!$segments&&(($set['weight_kg']??'')!==''||($set['repetitions']??'')!==''))$segments[]=['weight_kg'=>$set['weight_kg'],'repetitions'=>$set['repetitions']];
+                    if(!$segments)continue;
+                    $type=in_array($set['set_type']??'',['warmup','ramp','working'],true)?$set['set_type']:'working';
+                    $best=$segments[0];
+                    foreach($segments as $segment){
+                        if((float)$segment['weight_kg']>(float)$best['weight_kg']||((float)$segment['weight_kg']===(float)$best['weight_kg']&&(int)$segment['repetitions']>(int)$best['repetitions']))$best=$segment;
+                    }
+                    $rest=($set['rest_seconds']??'')!==''?$set['rest_seconds']:null;
+                    $setStmt->execute([$weId,$setPosition+1,$type,$best['weight_kg'],$best['repetitions'],$rest,trim($set['notes']??'')?:null,1]);
+                    $setId=(int)$db->lastInsertId();
+                    foreach($segments as $segmentPosition=>$segment)$segmentStmt->execute([$setId,$segmentPosition+1,$segment['weight_kg'],$segment['repetitions']]);
+                }
+            }
+            if($templateId&&isset($exercise['add_to_template']))self::addExerciseToTemplate($db,$templateId,$exerciseId,$exercise);
+        }
+    }
+
+    private static function addExerciseToTemplate(PDO $db,int $templateId,int $exerciseId,array $exercise): void
+    {
+        $exists=$db->prepare('SELECT 1 FROM workout_template_exercises WHERE workout_template_id=? AND exercise_id=?');$exists->execute([$templateId,$exerciseId]);if($exists->fetchColumn())return;$position=(int)$db->query('SELECT COALESCE(MAX(position),0)+1 FROM workout_template_exercises WHERE workout_template_id='.(int)$templateId)->fetchColumn();$working=array_values(array_filter($exercise['sets']??[],fn($set)=>($set['set_type']??'working')==='working'));$reps=[];foreach($working as $set)foreach(($set['segments']??[])?:[$set] as $segment)if(($segment['repetitions']??'')!=='')$reps[]=(int)$segment['repetitions'];$rest=(int)($working[0]['rest_seconds']??90);$stmt=$db->prepare('INSERT INTO workout_template_exercises(workout_template_id,exercise_id,position,set_count,repetitions_min,repetitions_max,rest_seconds_min,rest_seconds) VALUES(?,?,?,?,?,?,?,?)');$stmt->execute([$templateId,$exerciseId,$position,max(1,count($working)),$reps?min($reps):null,$reps?max($reps):null,$rest,$rest]);
     }
 
     public static function delete(int $id): void
