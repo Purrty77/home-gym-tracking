@@ -8,7 +8,7 @@ $loadLabels=['per_dumbbell'=>'Per dumbbell','total'=>'Combined / total load','ma
   <div>
     <p class="text-sm text-emerald-500"><?= e(date('M j, Y · H:i',strtotime($session['performed_at']))) ?></p>
     <h1 class="text-3xl font-black"><?= e($session['session_type']) ?></h1>
-    <?php if($session['body_weight_kg']): ?><p class="text-zinc-400">Body weight: <?= e($session['body_weight_kg']) ?> kg</p><?php endif; ?>
+    <?php if($session['body_weight_kg']): ?><p class="text-zinc-400">Body weight: <?= e(format_number($session['body_weight_kg'])) ?> kg</p><?php endif; ?>
     <?php if($session['last_edited_at']??null): ?><p class="mt-1 text-xs text-zinc-500">Edited on <?= e(date('M j, Y · H:i',strtotime($session['last_edited_at']))) ?></p><?php endif; ?>
   </div>
   <a class="btn-secondary shrink-0" href="<?= e(route('workouts.edit',['id'=>$session['id']])) ?>">✏️ Edit workout</a>
@@ -26,8 +26,8 @@ $loadLabels=['per_dumbbell'=>'Per dumbbell','total'=>'Combined / total load','ma
       <div class="overflow-x-auto"><table><thead><tr><th>#</th><th>Type</th><th>Performance</th><th>Rest</th><th>Note</th></tr></thead><tbody>
       <?php foreach($rows as $row):if(!$row['id'])continue;$segments=$row['segments']??[]; ?>
         <tr><td><?= (int)$row['position'] ?></td><td><?= e(['warmup'=>'Warm-up','ramp'=>'Ramp-up','working'=>'Working'][$row['set_type']]??$row['set_type']) ?></td><td>
-          <?php if(count($segments)>1): ?><span class="font-semibold text-orange-300">Drop set · </span><?php foreach($segments as $index=>$segment): ?><?= $index?' → ':'' ?><?= e($segment['weight_kg']) ?> kg × <?= (int)$segment['repetitions'] ?><?= (int)$segment['is_personal_record']===1?' 🏆':'' ?><?php endforeach; ?>
-          <?php else: ?><?= e($row['weight_kg']??'—') ?> kg × <?= e($row['repetitions']??'—') ?><?= (int)$row['is_personal_record']===1?' 🏆':'' ?><?php endif; ?>
+          <?php if(count($segments)>1): ?><span class="font-semibold text-orange-300">Drop set · </span><?php foreach($segments as $index=>$segment): ?><?= $index?' → ':'' ?><?= e(format_number($segment['weight_kg'])) ?> kg × <?= (int)$segment['repetitions'] ?><?= (int)$segment['is_personal_record']===1?' 🏆':'' ?><?php endforeach; ?>
+          <?php else: ?><?= e(format_number($row['weight_kg']??'—')) ?> kg × <?= e($row['repetitions']??'—') ?><?= (int)$row['is_personal_record']===1?' 🏆':'' ?><?php endif; ?>
         </td><td><?= $row['rest_seconds']!==null?e($row['rest_seconds']).' s':'—' ?></td><td class="text-zinc-400"><?= e($row['notes']??'—') ?></td></tr>
       <?php endforeach; ?>
       </tbody></table></div>

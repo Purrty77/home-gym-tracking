@@ -5,6 +5,15 @@ function e(mixed $value): string
     return htmlspecialchars((string) $value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+function format_number(mixed $value, int $decimals = 2): string
+{
+    if ($value === null || $value === '' || !is_numeric($value)) {
+        return (string) $value;
+    }
+
+    return rtrim(rtrim(number_format((float) $value, $decimals, '.', ''), '0'), '.');
+}
+
 function url(string $path = ''): string
 {
     return '/' . ltrim($path, '/');

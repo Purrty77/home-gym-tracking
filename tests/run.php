@@ -14,6 +14,7 @@ test('invalid training values are rejected',function(){expect(count(Validator::w
 test('a valid exercise is accepted',function(){expect(Validator::exercise(['name'=>'Squat','muscle_group_id'=>1,'recommended_rest_seconds'=>120])===[]);});
 test('a dated check-up may skip every optional measurement',function(){expect(Validator::measurement(['measured_on'=>'2026-07-12'])===[]);});
 test('HTML is escaped',function(){expect(e('<script>')==='&lt;script&gt;');});
+test('displayed numbers use at most two decimals',function(){expect(format_number('60.000000')==='60');expect(format_number('47.200000')==='47.2');expect(format_number('17.555')==='17.56');});
 test('local assets are cache-busted',function(){expect(str_starts_with(asset('assets/js/app.js'),'/assets/js/app.js?v='));});
 test('workout streaks count consecutive days across week boundaries',function(){$today=new DateTimeImmutable('today');$dates=[$today->modify('-1 day')->format('Y-m-d'),$today->format('Y-m-d')];$streak=(new StatisticsService())->dailyStreaks($dates);expect($streak['current']===2&&$streak['longest']===2,'Sunday and Monday should be a two-day streak, not two weeks.');});
 

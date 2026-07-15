@@ -11,7 +11,7 @@ $editing=isset($session);$title=$editing?'Edit workout':'New workout';$initial=$
     <div><label for="workout_template_id">Workout plan</label><select id="workout_template_id" name="workout_template_id"><option value="">Free workout</option><?php foreach($templates as $template): ?><option value="<?= (int)$template['id'] ?>" <?= (int)($session['workout_template_id']??$selectedTemplate['id']??0)===(int)$template['id']?'selected':'' ?>><?= e($template['name']) ?></option><?php endforeach; ?></select></div>
     <div><label for="performed_at">Date and time</label><input id="performed_at" type="datetime-local" name="performed_at" required value="<?= e($editing?date('Y-m-d\TH:i',strtotime($session['performed_at'])):old('performed_at',$formDate.'T'.date('H:i'))) ?>"></div>
     <div><label for="session_type">Workout name</label><input id="session_type" name="session_type" required placeholder="e.g. Legs" value="<?= e($session['session_type']??$selectedTemplate['session_type']??old('session_type')) ?>"></div>
-    <div><label for="body_weight_kg">Body weight (kg)</label><input id="body_weight_kg" type="number" step="any" min="0" name="body_weight_kg" value="<?= e($session['body_weight_kg']??old('body_weight_kg')) ?>"></div>
+    <div><label for="body_weight_kg">Body weight (kg)</label><input id="body_weight_kg" type="number" step="any" min="0" name="body_weight_kg" value="<?= e(format_number($session['body_weight_kg']??old('body_weight_kg'))) ?>"></div>
     <div class="sm:col-span-2"><label for="notes">Workout notes</label><textarea id="notes" name="notes" rows="2"><?= e($session['notes']??old('notes')) ?></textarea></div>
   </section>
 
