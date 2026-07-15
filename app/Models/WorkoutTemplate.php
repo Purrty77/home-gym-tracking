@@ -12,7 +12,7 @@ final class WorkoutTemplate
     public static function find(int $id): ?array
     {
         $db=Database::connection();$stmt=$db->prepare('SELECT * FROM workout_templates WHERE id=? AND is_active=1');$stmt->execute([$id]);$template=$stmt->fetch();if(!$template)return null;
-        $stmt=$db->prepare('SELECT wte.*,e.name exercise_name FROM workout_template_exercises wte JOIN exercises e ON e.id=wte.exercise_id WHERE wte.workout_template_id=? ORDER BY wte.position');$stmt->execute([$id]);$template['exercises']=$stmt->fetchAll();return $template;
+        $stmt=$db->prepare('SELECT wte.*,e.name exercise_name,e.load_semantics FROM workout_template_exercises wte JOIN exercises e ON e.id=wte.exercise_id WHERE wte.workout_template_id=? ORDER BY wte.position');$stmt->execute([$id]);$template['exercises']=$stmt->fetchAll();return $template;
     }
 
     public static function forDay(int $isoDay): ?array

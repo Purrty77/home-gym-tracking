@@ -210,6 +210,7 @@ sudo mariadb muscu < database/migrations/010_exercise_dataset_metadata.sql
 sudo mariadb muscu < database/migrations/011_workout_mode_companion.sql
 sudo mariadb muscu < database/migrations/012_parallel_exercises_finish_early.sql
 sudo mariadb muscu < database/migrations/013_historical_workout_editing.sql
+sudo mariadb muscu < database/migrations/014_dumbbell_weight_mode.sql
 sudo mariadb muscu < database/seeds/motivational_messages.sql
 ```
 
@@ -218,6 +219,8 @@ Migration `011` adds the per-exercise warm-up choice, drop-set segments, persist
 Migration `012` adds independent per-exercise progress and rest timers, enabling parallel exercises and supersets, plus explicit skipped-exercise tracking when a workout is finished early.
 
 Migration `013` enables the dedicated historical workout editor, stores the weight representation used for each exercise, and adds a simple last-edited timestamp. Historical edits recalculate current statistics and personal records. Achievements remain permanently unlocked once earned.
+
+Migration `014` initializes per-exercise dumbbell weight modes and ensures every historical workout keeps a snapshot of the representation originally entered. Dumbbell exercises default to **weight per dumbbell**.
 
 ### Selected exercise dataset
 

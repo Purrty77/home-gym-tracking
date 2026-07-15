@@ -44,7 +44,7 @@ final class WorkoutSession
         $stmt = $db->prepare('SELECT * FROM workout_sessions WHERE id=?'); $stmt->execute([$id]);
         $session = $stmt->fetch();
         if (!$session) return null;
-        $stmt = $db->prepare("SELECT we.id workout_exercise_id,we.exercise_id,we.notes exercise_notes,we.status exercise_status,COALESCE(we.load_semantics,e.load_semantics) load_semantics,e.name,e.recommended_rest_seconds,es.* FROM workout_exercises we JOIN exercises e ON e.id=we.exercise_id LEFT JOIN exercise_sets es ON es.workout_exercise_id=we.id WHERE we.workout_session_id=? ORDER BY we.position,es.position");
+        $stmt = $db->prepare("SELECT we.id workout_exercise_id,we.exercise_id,we.notes exercise_notes,we.status exercise_status,COALESCE(we.load_semantics,e.load_semantics) load_semantics,e.name,eq.name equipment,e.recommended_rest_seconds,es.* FROM workout_exercises we JOIN exercises e ON e.id=we.exercise_id LEFT JOIN equipment eq ON eq.id=e.equipment_id LEFT JOIN exercise_sets es ON es.workout_exercise_id=we.id WHERE we.workout_session_id=? ORDER BY we.position,es.position");
         $stmt->execute([$id]);
         $session['rows'] = $stmt->fetchAll();
         $segments=$db->prepare('SELECT ss.* FROM exercise_set_segments ss JOIN exercise_sets es ON es.id=ss.exercise_set_id JOIN workout_exercises we ON we.id=es.workout_exercise_id WHERE we.workout_session_id=? ORDER BY ss.exercise_set_id,ss.position');$segments->execute([$id]);$bySet=[];foreach($segments->fetchAll() as $segment)$bySet[(int)$segment['exercise_set_id']][]=$segment;foreach($session['rows'] as &$row)$row['segments']=$row['id']?($bySet[(int)$row['id']]??[]):[];unset($row);
@@ -90,13 +90,14 @@ final class WorkoutSession
     private static function saveExercises(PDO $db,int $sessionId,array $exercises,?int $templateId=null): void
     {
         $weStmt=$db->prepare("INSERT INTO workout_exercises(workout_session_id,exercise_id,position,notes,load_semantics,status,completed_at) VALUES(?,?,?,?,?,?,CASE WHEN ?='completed' THEN NOW() ELSE NULL END)");
+        $semanticsStmt=$db->prepare('SELECT load_semantics FROM exercises WHERE id=?');
         $setStmt=$db->prepare('INSERT INTO exercise_sets(workout_exercise_id,position,set_type,weight_kg,repetitions,rest_seconds,notes,completed) VALUES(?,?,?,?,?,?,?,?)');
         $segmentStmt=$db->prepare('INSERT INTO exercise_set_segments(exercise_set_id,position,weight_kg,repetitions,is_personal_record) VALUES(?,?,?,?,0)');
         foreach($exercises as $exercisePosition=>$exercise){
             if(empty($exercise['exercise_id']))continue;
             $exerciseId=(int)$exercise['exercise_id'];
             $status=($exercise['status']??'completed')==='skipped'?'skipped':'completed';
-            $semantics=in_array($exercise['load_semantics']??'',['total','per_dumbbell','machine_stack','added_plates'],true)?$exercise['load_semantics']:null;
+            $semantics=in_array($exercise['load_semantics']??'',['total','per_dumbbell','machine_stack','added_plates'],true)?$exercise['load_semantics']:null;if($semantics===null){$semanticsStmt->execute([$exerciseId]);$semantics=$semanticsStmt->fetchColumn()?:'total';}
             $weStmt->execute([$sessionId,$exerciseId,$exercisePosition+1,trim($exercise['notes']??'')?:null,$semantics,$status,$status]);
             $weId=(int)$db->lastInsertId();
             if($status!=='skipped'){
