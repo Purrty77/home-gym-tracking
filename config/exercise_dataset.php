@@ -22,7 +22,7 @@ return [
     ],
     'preferred_names'=>[
         '1403'=>'Neck Side Stretch','0716'=>'Side Push Neck Stretch','0405'=>'Dumbbell Shoulder Press','1457'=>'Barbell Military Press',
-        '0602'=>'Reverse Pec Deck','0378'=>'Rear Delt Fly','0225'=>'Cable High Reverse Fly','0188'=>'Cable Fly','0596'=>'Pec Deck',
+        '0602'=>'Reverse Pec Deck','0378'=>'Rear Delt Fly (Alternate Machine)','0225'=>'Cable High Reverse Fly','0188'=>'Cable Fly','0596'=>'Pec Deck',
         '0197'=>'Lat Pulldown','0818'=>'Close-Grip Lat Pulldown','0861'=>'Seated Cable Row','0027'=>'Barbell Row','0293'=>'Dumbbell Row',
         '0049'=>'Chest-Supported Row','1350'=>'Machine Row','0238'=>'Straight-Arm Pulldown','0294'=>'Dumbbell Curl','0447'=>'EZ-Bar Curl',
         '0313'=>'Hammer Curl','0318'=>'Incline Dumbbell Curl','0592'=>'Preacher Curl','0297'=>'Concentration Curl',
