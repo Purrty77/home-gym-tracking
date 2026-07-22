@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Dotenv\Dotenv;
+use App\Services\BackupRetentionService;
 
 $root = dirname(__DIR__);
 require $root . '/vendor/autoload.php';
@@ -24,9 +25,15 @@ exec($command, $output, $status);
 putenv('MYSQL_PWD');
 if ($status !== 0) { @unlink($plain); fwrite(STDERR, "Échec de la sauvegarde.\n"); exit(1); }
 
-file_put_contents($archive, gzencode((string) file_get_contents($plain), 9));
-unlink($plain);
-foreach (glob($directory . '/muscu-*.sql.gz') ?: [] as $file) {
-    if (filemtime($file) < strtotime('-60 days')) unlink($file);
+$contents = file_get_contents($plain);
+$compressed = $contents !== false && $contents !== '' ? gzencode($contents, 9) : false;
+if ($compressed === false || file_put_contents($archive, $compressed) === false) {
+    @unlink($plain);
+    @unlink($archive);
+    fwrite(STDERR, "Échec de la compression de la sauvegarde.\n");
+    exit(1);
 }
+unlink($plain);
+$deleted = (new BackupRetentionService())->prune($directory, 5);
 echo "Sauvegarde créée : {$archive}\n";
+if ($deleted) echo count($deleted) . " ancienne(s) sauvegarde(s) supprimée(s).\n";

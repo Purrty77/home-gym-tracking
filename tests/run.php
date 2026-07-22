@@ -2,6 +2,7 @@
 declare(strict_types=1);
 use App\Core\Validator;
 use App\Services\StatisticsService;
+use App\Services\BackupRetentionService;
 require dirname(__DIR__).'/vendor/autoload.php';
 
 $tests=[];
@@ -15,6 +16,7 @@ test('a valid exercise is accepted',function(){expect(Validator::exercise(['name
 test('a dated check-up may skip every optional measurement',function(){expect(Validator::measurement(['measured_on'=>'2026-07-12'])===[]);});
 test('HTML is escaped',function(){expect(e('<script>')==='&lt;script&gt;');});
 test('displayed numbers use at most two decimals',function(){expect(format_number('60.000000')==='60');expect(format_number('47.200000')==='47.2');expect(format_number('17.555')==='17.56');});
+test('backup retention keeps only the five newest archives',function(){$directory=sys_get_temp_dir().'/muscu-backups-'.bin2hex(random_bytes(4));mkdir($directory);try{for($i=1;$i<=7;$i++){$file=$directory.'/muscu-test-'.$i.'.sql.gz';file_put_contents($file,(string)$i);touch($file,1000+$i);}$deleted=(new BackupRetentionService())->prune($directory,5);$remaining=glob($directory.'/muscu-*.sql.gz')?:[];expect(count($deleted)===2&&count($remaining)===5);expect(!file_exists($directory.'/muscu-test-1.sql.gz')&&!file_exists($directory.'/muscu-test-2.sql.gz'));}finally{foreach(glob($directory.'/*')?:[] as $file)unlink($file);rmdir($directory);}});
 test('local assets are cache-busted',function(){expect(str_starts_with(asset('assets/js/app.js'),'/assets/js/app.js?v='));});
 test('workout streaks count consecutive days across week boundaries',function(){$today=new DateTimeImmutable('today');$dates=[$today->modify('-1 day')->format('Y-m-d'),$today->format('Y-m-d')];$streak=(new StatisticsService())->dailyStreaks($dates);expect($streak['current']===2&&$streak['longest']===2,'Sunday and Monday should be a two-day streak, not two weeks.');});
 

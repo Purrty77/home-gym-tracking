@@ -247,7 +247,7 @@ chmod +x scripts/*.sh
 ./scripts/backup-database.sh
 ```
 
-Les archives sont placées dans `storage/backups`, hors de Git, et celles de plus de 60 jours sont supprimées. Copiez régulièrement ce dossier vers une autre machine : une sauvegarde conservée uniquement sur la carte SD ne protège pas d’une panne de celle-ci.
+Les archives sont placées dans `storage/backups`, hors de Git. Seules les **cinq sauvegardes les plus récentes** sont conservées ; chaque nouvelle sauvegarde supprime automatiquement les plus anciennes au-delà de cette limite. Copiez occasionnellement une archive vers une autre machine si vous souhaitez aussi être protégé contre une panne de la carte SD.
 
 Pour automatiser une sauvegarde quotidienne à 03:15 :
 
@@ -260,6 +260,8 @@ Ajoutez :
 ```cron
 15 3 * * * /var/www/muscu/scripts/backup-database.sh >> /var/www/muscu/storage/logs/backup.log 2>&1
 ```
+
+Cette tâche crée une sauvegarde chaque jour à 03:15. Avec la rétention automatique, le Raspberry Pi ne conserve jamais plus de cinq archives `muscu-*.sql.gz`.
 
 Restauration :
 
