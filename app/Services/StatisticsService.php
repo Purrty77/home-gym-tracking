@@ -30,7 +30,8 @@ final class StatisticsService
         $progressedThisMonth=count(array_filter($allProgress,fn(array $row):bool=>date('Y-m',strtotime($row['performed_at']))===date('Y-m')&&$row['previous_weight']!==null&&((float)$row['latest_weight']>(float)$row['previous_weight']||((float)$row['latest_weight']===(float)$row['previous_weight']&&(int)$row['latest_reps']>(int)$row['previous_reps']))));
         $progress=array_slice($allProgress,0,8);
 
-        $heatmap=$db->query("SELECT DATE(performed_at) workout_date,COUNT(*) workout_count FROM workout_sessions WHERE status='completed' AND performed_at>=CURRENT_DATE-INTERVAL 364 DAY GROUP BY DATE(performed_at) ORDER BY workout_date")->fetchAll();
+        $heatmap=$db->query("SELECT DATE(performed_at) workout_date,COUNT(*) workout_count FROM workout_sessions WHERE status='completed' AND performed_at>=CURRENT_DATE-INTERVAL 371 DAY GROUP BY DATE(performed_at) ORDER BY workout_date")->fetchAll();
+        $heatmapCalendar=$this->heatmapCalendar($heatmap);
         $totalWorkouts=(int)$db->query("SELECT COUNT(*) FROM workout_sessions WHERE status='completed'")->fetchColumn();
         $monthWorkouts=(int)$db->query("SELECT COUNT(*) FROM workout_sessions WHERE status='completed' AND YEAR(performed_at)=YEAR(CURRENT_DATE) AND MONTH(performed_at)=MONTH(CURRENT_DATE)")->fetchColumn();
         $workoutDates=array_column($heatmap,'workout_date');
@@ -39,7 +40,43 @@ final class StatisticsService
         $nextWorkout=WorkoutTemplate::forDay((int)(new DateTimeImmutable('tomorrow'))->format('N'));
         $todayCompleted=$db->query("SELECT id,session_type,performed_at,workout_template_id FROM workout_sessions WHERE status='completed' AND DATE(performed_at)=CURRENT_DATE ORDER BY completed_at DESC,id DESC LIMIT 1")->fetch()?:null;
 
-        return compact('week','records','recordCount','weight','currentWeight','todayWeight','previousWeight','entryWeightChange','weightChange','weeklyWeightTrend','monthlyWeightTrend','weightGoal','due','lastMeasurement','nextReminder','progress','progressedThisMonth','heatmap','streak','longestStreak','totalWorkouts','monthWorkouts','todayWorkout','nextWorkout','todayCompleted');
+        return compact('week','records','recordCount','weight','currentWeight','todayWeight','previousWeight','entryWeightChange','weightChange','weeklyWeightTrend','monthlyWeightTrend','weightGoal','due','lastMeasurement','nextReminder','progress','progressedThisMonth','heatmap','heatmapCalendar','streak','longestStreak','totalWorkouts','monthWorkouts','todayWorkout','nextWorkout','todayCompleted');
+    }
+
+    public function heatmapCalendar(array $rows, ?DateTimeImmutable $today=null): array
+    {
+        $today=($today??new DateTimeImmutable('today'))->setTime(0,0);
+        $counts=[];
+        foreach($rows as $row)$counts[(string)$row['workout_date']]=(int)$row['workout_count'];
+
+        $start=$today->modify('monday this week')->modify('-52 weeks');
+        $weeks=[];$months=[];$labelledMonths=[];
+        for($weekIndex=0;$weekIndex<53;$weekIndex++){
+            $weekStart=$start->modify("+{$weekIndex} weeks");
+            $days=[];
+            for($dayIndex=0;$dayIndex<7;$dayIndex++){
+                $date=$weekStart->modify("+{$dayIndex} days");
+                $key=$date->format('Y-m-d');
+                $count=$counts[$key]??0;
+                $days[]=[
+                    'date'=>$key,
+                    'label'=>$date->format('M j, Y'),
+                    'count'=>$count,
+                    'level'=>min(4,$count),
+                    'future'=>$date>$today,
+                ];
+                $monthKey=$date->format('Y-m');
+                if(($weekIndex===0&&$dayIndex===0)||($date->format('j')==='1'&&!isset($labelledMonths[$monthKey]))){
+                    $months[$weekIndex]=$date->format('M');
+                    $labelledMonths[$monthKey]=true;
+                }
+            }
+            $weeks[]=['start'=>$weekStart->format('Y-m-d'),'days'=>$days];
+        }
+        $monthColumns=array_keys($months);
+        if(count($monthColumns)>1&&$monthColumns[1]-$monthColumns[0]<3)unset($months[$monthColumns[0]]);
+
+        return ['start'=>$start->format('Y-m-d'),'end'=>$weeks[52]['days'][6]['date'],'weeks'=>$weeks,'months'=>$months];
     }
 
     public function dailyStreaks(array $dates): array
